@@ -8,6 +8,7 @@ body { font-family: 'Inter', sans-serif; }
     border-bottom: 2px dashed transparent; /* Adds a subtle dashed bottom border, initially transparent. */
     transition: border-color 0.3s; /* Smooth transition for border color changes. */
 }
+
 /* Styles applied when contenteditable elements are hovered over or focused. */
 [contenteditable]:hover, [contenteditable]:focus {
     border-bottom-color: #4f46e5; /* Changes the dashed border to Indigo on hover/focus, providing visual feedback. */
@@ -21,17 +22,149 @@ body { font-family: 'Inter', sans-serif; }
 /* Styling for note cards that are marked as 'done'. */
 .note-card.is-done {
     background-color: #f9fafb; /* Light gray background for done notes. */
+    opacity: 0.8; /* Slightly transparent for done notes */
 }
+
 /* Dark mode specific background color for done notes. */
 .dark .note-card.is-done {
     background-color: #1f2937; /* Darker gray background in dark mode. */
 }
+
 /* Styles for the title of done notes. */
 .note-card.is-done .note-title {
     text-decoration: line-through; /* Adds a strikethrough to the title. */
     color: #6b7280; /* Gray out the title text. */
 }
+
 /* Dark mode specific text color for titles of done notes. */
 .dark .note-card.is-done .note-title {
     color: #4b5563; /* Even darker gray in dark mode. */
+}
+
+/* Save indicator styling */
+.note-save-indicator {
+    transition: opacity 0.3s ease-in-out;
+    font-weight: 500;
+    opacity: 0;
+}
+
+.note-save-indicator.show {
+    opacity: 1;
+}
+
+/* Traffic light button (done toggle) styling */
+.note-done-toggle {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.note-done-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.note-done-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Control buttons styling */
+.note-up, .note-down, .note-toggle, .note-delete {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.note-up:hover, .note-down:hover, .note-toggle:hover, .note-delete:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .note-up:hover, .dark .note-down:hover, .dark .note-toggle:hover, .dark .note-delete:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Add Note button styling */
+#add-note-button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#add-note-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+#add-note-button:active {
+    transform: translateY(0);
+}
+
+/* Search buttons styling */
+#search-tags-button, #clear-search-button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#search-tags-button:hover, #clear-search-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Note card hover effects */
+.note-card {
+    transition: all 0.2s ease;
+}
+
+.note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.dark .note-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Smooth transitions for all interactive elements */
+button, input, textarea, [contenteditable] {
+    transition: all 0.2s ease;
+}
+
+/* Focus styles for better accessibility */
+button:focus, input:focus, textarea:focus, [contenteditable]:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+}
+
+/* Loading state for buttons */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Status message styling */
+#status-message {
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+/* Confirmation modal styling */
+.modal-overlay {
+    backdrop-filter: blur(4px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .note-card {
+        margin: 0.5rem 0;
+    }
+    
+    .controls {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .note-up, .note-down, .note-toggle, .note-delete {
+        padding: 6px 10px;
+        font-size: 0.875rem;
+    }
 }
