@@ -1,107 +1,170 @@
+<!-- index/html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Notes App</title>
+    <title>Notes App</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 flex flex-col items-center min-h-screen p-4">
-
-    <div class="w-full max-w-4xl">
-        <header class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 sticky top-4 z-10 flex flex-wrap items-center justify-between gap-4">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📝 Local Notes</h1>
-            
-            <div class="flex items-center gap-3">
-                <button id="add-note-button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    
+    <div class="container mx-auto max-w-4xl p-4">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📝 Notes App</h1>
+                
+                <button id="add-note-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                     + Add Note
                 </button>
             </div>
             
-            <div class="w-full mt-4 flex flex-wrap items-center gap-3">
-                <input type="text" id="tag-search-input" placeholder="Search tags (e.g., work, urgent)"
-                        class="flex-grow p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500">
-                <button id="search-tags-button" class="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
-                    Search Tags
+            <!-- Search Bar -->
+            <div class="mt-4 flex flex-col sm:flex-row gap-2">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="Search tags (comma-separated)" 
+                    class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                <button id="search-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    Search
                 </button>
-                <button id="clear-search-button" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
-                    Clear Search
+                <button id="clear-search-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    Clear
                 </button>
             </div>
         </header>
 
-        <main id="notes-container" class="space-y-4">
-        </main>
-        
-        <div id="completed-section" class="mt-12 hidden">
-            <h2 class="text-xl font-bold text-gray-500 dark:text-gray-400 border-b-2 border-gray-200 dark:border-gray-700 pb-2 mb-4">Completed Notes</h2>
-            <div id="done-notes-container" class="space-y-4 opacity-70">
-            </div>
+        <!-- Status Message -->
+        <div id="status-message" class="mb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+            Welcome! Click "Add Note" to get started.
         </div>
 
-        <footer class="text-center mt-6">
-             <p id="status-message" class="text-sm text-gray-500 dark:text-gray-400">Welcome! Add a note to begin.</p>
-        </footer>
+        <!-- Active Notes -->
+        <div id="active-notes-container" class="space-y-4 mb-8">
+        </div>
+
+        <!-- Completed Notes Section -->
+        <div id="completed-section" class="hidden">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                Completed Notes
+            </h2>
+            <div id="completed-notes-container" class="space-y-4 opacity-75">
+            </div>
+        </div>
     </div>
 
-    <!-- System Suggestions Datalist -->
-    <datalist id="system-suggestions">
-    </datalist>
+    <!-- System Autocomplete -->
+    <datalist id="system-datalist"></datalist>
 
+    <!-- Note Template -->
     <template id="note-template">
-        <div class="note-card bg-white dark:bg-gray-700 rounded-lg shadow-md transition-all duration-300">
-            <div class="header flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
-                <div class="flex items-center flex-grow">
-                    <button title="Toggle Completion" class="note-done-toggle w-6 h-6 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 mr-4">
-                        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="12"/>
-                        </svg>
-                    </button>
-                    <h2 class="note-title text-xl font-semibold flex-grow" contenteditable="true">Note Title</h2>
+        <div class="note-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
+            
+            <!-- Note Header -->
+            <div class="note-header flex items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                
+                <!-- Traffic Light -->
+                <button class="traffic-light w-6 h-6 rounded-full border-2 border-white shadow-sm mr-3 flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2">
+                    <div class="w-3 h-3 rounded-full bg-white"></div>
+                </button>
+
+                <!-- Title -->
+                <div class="note-title flex-1 text-lg font-medium text-gray-900 dark:text-white bg-transparent border-none outline-none focus:bg-gray-50 dark:focus:bg-gray-700 rounded px-2 py-1 transition-colors" contenteditable="true">
+                    New Note
                 </div>
+
+                <!-- Controls -->
                 <div class="controls flex items-center gap-2 ml-4">
-                    <span class="note-save-indicator text-sm text-green-500 opacity-0 transition-opacity duration-500 ease-in-out mr-2">Saved!</span>
-                    <button title="Move Up" class="note-up text-gray-400 hover:text-green-500 transition-colors">▲</button>
-                    <button title="Move Down" class="note-down text-gray-400 hover:text-red-500 transition-colors">▼</button>
-                    <button title="Expand/Collapse Note Details" class="note-toggle text-gray-400 hover:text-blue-500 transition-colors font-mono text-lg font-bold">▸</button>
-                    <button title="Delete Note" class="note-delete text-gray-400 hover:text-red-600 transition-colors font-bold">✕</button>
+                    <button class="save-btn hidden bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded font-medium transition-colors">
+                        Save
+                    </button>
+                    <span class="save-indicator text-xs text-green-600 opacity-0 transition-opacity duration-300">
+                        Saved!
+                    </span>
+                    <button class="move-up-btn text-gray-400 hover:text-green-600 p-1 rounded transition-colors" title="Move Up">
+                        ↑
+                    </button>
+                    <button class="move-down-btn text-gray-400 hover:text-red-600 p-1 rounded transition-colors" title="Move Down">
+                        ↓
+                    </button>
+                    <button class="expand-btn text-gray-400 hover:text-blue-600 p-1 rounded transition-colors font-mono text-sm" title="Expand">
+                        ▸
+                    </button>
+                    <button class="delete-btn text-gray-400 hover:text-red-600 p-1 rounded transition-colors font-bold" title="Delete">
+                        ✕
+                    </button>
                 </div>
             </div>
-            
-            <div class="note-body collapsed p-4 space-y-3">
+
+            <!-- Note Body (Expandable) -->
+            <div class="note-body hidden p-4 space-y-4 bg-gray-50 dark:bg-gray-700/50">
+                
+                <!-- Description -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                    <div class="note-description bg-gray-50 dark:bg-gray-600 p-3 rounded-lg min-h-[60px] text-gray-900 dark:text-gray-100" contenteditable="true">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Description
+                    </label>
+                    <div class="note-description min-h-[80px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" contenteditable="true">
                         Add your description here.
                     </div>
                 </div>
-                
+
+                <!-- Tags -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
-                    <div class="note-tags bg-gray-50 dark:bg-gray-600 p-3 rounded-lg text-gray-900 dark:text-gray-100" contenteditable="true">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Tags
+                    </label>
+                    <div class="note-tags p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" contenteditable="true">
                         Add tags here (comma-separated)
                     </div>
                 </div>
-                
+
+                <!-- System -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System</label>
-                    <input type="text" class="note-system w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500" list="system-suggestions" placeholder="Enter system name">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        System
+                    </label>
+                    <input type="text" class="note-system w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" list="system-datalist" placeholder="Enter system name">
                 </div>
-                
+
+                <!-- Comments -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comments</label>
-                    <textarea class="note-comments w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 resize-none" rows="3" placeholder="Add your comments here..."></textarea>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Comments
+                    </label>
+                    <textarea class="note-comments w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none" rows="3" placeholder="Add your comments here..."></textarea>
                 </div>
             </div>
         </div>
     </template>
+
+    <!-- Confirmation Modal Template -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+            <p id="modal-message" class="text-lg text-gray-900 dark:text-gray-100 mb-6 text-center">
+                Are you sure?
+            </p>
+            <div class="flex justify-center gap-4">
+                <button id="modal-confirm" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    Delete
+                </button>
+                <button id="modal-cancel" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
