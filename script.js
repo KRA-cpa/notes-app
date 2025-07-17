@@ -122,52 +122,55 @@ const App = {
 
     // --- API Communication Functions ---
 
-    async fetchDataFromCloud() {
-        try {
-            const response = await fetch(this.APPS_SCRIPT_WEB_APP_URL, {
-                method: 'GET',
-                mode: 'cors'
-            });
-            if (!response.ok) {
-                // Specific error for fetching failure
-                throw new Error(`Failed to load: HTTP status ${response.status}`);
-            }
-            const data = await response.json();
-            this.updateStatus('Connected to Google Sheet.', 'success'); // Indicate successful connection
-            return data;
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            this.updateStatus(`Connection Error: ${error.message || 'Failed to connect/load notes.'} Check Apps Script URL and deployment permissions.`, 'error');
-            return [];
+async fetchDataFromCloud() {
+    try {
+        const response = await fetch('/api/notes', {
+            method: 'GET'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load: HTTP status ${response.status}`);
         }
-    },
+        
+        const data = await response.json();
+        this.updateStatus('Connected to Google Sheet.', 'success');
+        return data;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        this.updateStatus(`Connection Error: ${error.message || 'Failed to connect/load notes.'} Check Apps Script URL and deployment permissions.`, 'error');
+        return [];
+    }
+},
 
-    async sendDataToCloud(action, noteData) {
-        try {
-            const response = await fetch(this.APPS_SCRIPT_WEB_APP_URL, {
-                method: 'POST',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8'
-                },
-                body: JSON.stringify({ action: action, note: noteData })
-            });
-            if (!response.ok) {
-                // Specific error for sending failure
-                throw new Error(`Failed to save: HTTP status ${response.status}`);
-            }
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(`API Error: ${result.message}`);
-            }
-            this.updateStatus('Data synced to Google Sheet.', 'success'); // Indicate successful sync
-            return result;
-        } catch (error) {
-            console.error(`Error performing ${action} action:`, error);
-            this.updateStatus(`Sync Error: ${error.message || `Failed to ${action} note.`} Check Apps Script URL and deployment permissions.`, 'error');
-            return { success: false, message: error.message };
+async sendDataToCloud(action, noteData) {
+    try {
+        const response = await fetch('/api/update-note', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: action, note: noteData })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to save: HTTP status ${response.status}`);
         }
-    },
+        
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(`API Error: ${result.message}`);
+        }
+        
+        this.updateStatus('Data synced to Google Sheet.', 'success');
+        return result;
+    } catch (error) {
+        console.error(`Error performing ${action} action:`, error);
+        this.updateStatus(`Sync Error: ${error.message || `Failed to ${action} note.`} Check server connection.`, 'error');
+        return { success: false, message: error.message };
+    }
+}    
+
+
 
     // --- System Suggestions Logic (Unchanged) ---
     addUniqueSystem(systemValue) {
