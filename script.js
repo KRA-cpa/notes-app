@@ -652,11 +652,11 @@ class NotesApp {
         const activeNotes = filteredNotes.filter(n => !n.done);
         const completedNotes = filteredNotes.filter(n => n.done);
         
-        // Render active notes
-        this.renderNotesList(activeNotes, this.elements.activeNotesContainer);
+        // Render active notes with order numbers
+        this.renderNotesList(activeNotes, this.elements.activeNotesContainer, true);
         
-        // Render completed notes
-        this.renderNotesList(completedNotes, this.elements.completedNotesContainer);
+        // Render completed notes without order numbers
+        this.renderNotesList(completedNotes, this.elements.completedNotesContainer, false);
         
         // Show/hide completed section
         if (this.elements.completedSection) {
@@ -675,12 +675,13 @@ class NotesApp {
     /**
      * Render notes list to container
      */
-    renderNotesList(notes, container) {
+    renderNotesList(notes, container, showOrderNumbers = false) {
         if (!container) return;
         
         container.innerHTML = '';
-        notes.forEach(note => {
-            const noteElement = this.createNoteElement(note);
+        notes.forEach((note, index) => {
+            const orderNumber = showOrderNumbers ? index + 1 : null;
+            const noteElement = this.createNoteElement(note, orderNumber);
             container.appendChild(noteElement);
         });
     }
@@ -688,7 +689,7 @@ class NotesApp {
     /**
      * Create a note element
      */
-    createNoteElement(note) {
+    createNoteElement(note, orderNumber = null) {
         const template = this.elements.noteTemplate;
         if (!template) return document.createElement('div');
         
@@ -714,6 +715,29 @@ class NotesApp {
         const titleElement = noteCard.querySelector('.note-title');
         if (titleElement) {
             titleElement.textContent = note.title || 'Untitled';
+        }
+        
+        // Set metadata (order number and timestamp)
+        const orderElement = noteCard.querySelector('.note-order');
+        const timestampElement = noteCard.querySelector('.note-timestamp');
+        
+        if (note.done) {
+            // For completed notes, show completion timestamp
+            if (orderElement) {
+                orderElement.classList.add('hidden');
+            }
+            if (timestampElement) {
+                timestampElement.textContent = `Completed: ${this.formatTimestamp(note.dateDone)}`;
+            }
+        } else {
+            // For active notes, show order number and creation timestamp
+            if (orderElement && orderNumber !== null) {
+                orderElement.textContent = `#${orderNumber} • `;
+                orderElement.classList.remove('hidden');
+            }
+            if (timestampElement) {
+                timestampElement.textContent = `Created: ${this.formatTimestamp(note.timestamp)}`;
+            }
         }
         
         // Set description
@@ -819,6 +843,31 @@ class NotesApp {
         this.elements.statusMessage.className = `mb-4 text-center text-sm ${type}`;
         
         console.log(`📢 Status: ${message} (${type})`);
+    }
+
+    /**
+     * Format timestamp to MM/DD/YYYY HH:MM:SS AM/PM
+     */
+    formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return '';
+        
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // 0 should be 12
+        hours = String(hours).padStart(2, '0');
+        
+        return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
     }
 
     /**
