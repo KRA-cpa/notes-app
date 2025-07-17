@@ -60,7 +60,7 @@
             <div class="header flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
                 <div class="flex items-center flex-grow">
                     <button title="Toggle Completion" class="note-done-toggle w-6 h-6 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 mr-4">
-                        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="12"/>
                         </svg>
                     </button>
@@ -70,12 +70,12 @@
                     <span class="note-save-indicator text-sm text-green-500 opacity-0 transition-opacity duration-500 ease-in-out mr-2">Saved!</span>
                     <button title="Move Up" class="note-up text-gray-400 hover:text-green-500 transition-colors">▲</button>
                     <button title="Move Down" class="note-down text-gray-400 hover:text-red-500 transition-colors">▼</button>
-                    <button title="Expand/Collapse" class="note-toggle text-gray-400 hover:text-blue-500 transition-colors text-2xl font-mono">▾</button>
+                    <button title="Expand/Collapse Note Details" class="note-toggle text-gray-400 hover:text-blue-500 transition-colors font-mono text-lg font-bold">▸</button>
                     <button title="Delete Note" class="note-delete text-gray-400 hover:text-red-600 transition-colors font-bold">✕</button>
                 </div>
             </div>
             
-            <div class="note-body p-4 space-y-3">
+            <div class="note-body collapsed p-4 space-y-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                     <div class="note-description bg-gray-50 dark:bg-gray-600 p-3 rounded-lg min-h-[60px] text-gray-900 dark:text-gray-100" contenteditable="true">
@@ -86,7 +86,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
                     <div class="note-tags bg-gray-50 dark:bg-gray-600 p-3 rounded-lg text-gray-900 dark:text-gray-100" contenteditable="true">
-                        new
+                        Add tags here (comma-separated)
                     </div>
                 </div>
                 

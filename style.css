@@ -14,9 +14,59 @@ body { font-family: 'Inter', sans-serif; }
     border-bottom-color: #4f46e5; /* Changes the dashed border to Indigo on hover/focus, providing visual feedback. */
 }
 
+/* Placeholder text styling for contenteditable fields */
+.placeholder-text {
+    color: #9ca3af !important; /* Gray text color for placeholder */
+    font-style: italic !important;
+    opacity: 0.7 !important;
+}
+
+.dark .placeholder-text {
+    color: #6b7280 !important; /* Darker gray for dark mode */
+}
+
+/* Make sure real content doesn't look like placeholder */
+[contenteditable]:not(.placeholder-text) {
+    color: inherit;
+    font-style: normal;
+    opacity: 1;
+}
+
+/* Note body styling */
+.note-body {
+    transition: all 0.3s ease;
+    display: block; /* Default to visible */
+}
+
 /* Style to hide the note body when it's collapsed. */
 .note-body.collapsed { 
-    display: none; /* Hides the entire note body section. */
+    display: none !important; /* Hides the entire note body section. */
+}
+
+/* Toggle button styling */
+.note-toggle {
+    font-family: monospace !important;
+    font-size: 1.2rem !important;
+    line-height: 1 !important;
+    user-select: none !important;
+    cursor: pointer !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background: transparent !important;
+    min-width: 28px !important;
+    text-align: center !important;
+    transition: all 0.2s ease !important;
+}
+
+.note-toggle:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    color: #3b82f6 !important;
+    transform: scale(1.1) !important;
+}
+
+.note-toggle:active {
+    transform: scale(0.9) !important;
 }
 
 /* Styling for note cards that are marked as 'done'. */
@@ -52,35 +102,83 @@ body { font-family: 'Inter', sans-serif; }
     opacity: 1;
 }
 
-/* Traffic light button (done toggle) styling */
+/* Traffic light button (done toggle) styling - ENHANCED */
 .note-done-toggle {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    z-index: 10 !important;
+    pointer-events: auto !important;
 }
 
 .note-done-toggle:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transform: scale(1.15) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 .note-done-toggle:active {
-    transform: scale(0.95);
+    transform: scale(0.9) !important;
+}
+
+/* Make sure the SVG inside doesn't interfere with clicks */
+.note-done-toggle svg {
+    pointer-events: none !important;
+    width: 20px !important;
+    height: 20px !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+.note-done-toggle svg circle {
+    pointer-events: none !important;
+}
+
+/* Save button styling */
+.note-save-btn {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    font-weight: 500;
+}
+
+.note-save-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.note-save-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Control buttons styling */
-.note-up, .note-down, .note-toggle, .note-delete {
+.note-up, .note-down, .note-delete {
     cursor: pointer;
     transition: all 0.2s ease;
     padding: 4px 8px;
     border-radius: 4px;
+    border: none;
+    background: transparent;
 }
 
-.note-up:hover, .note-down:hover, .note-toggle:hover, .note-delete:hover {
+.note-up:hover, .note-down:hover, .note-delete:hover {
     background-color: rgba(0, 0, 0, 0.05);
 }
 
-.dark .note-up:hover, .dark .note-down:hover, .dark .note-toggle:hover, .dark .note-delete:hover {
+.dark .note-up:hover, .dark .note-down:hover, .dark .note-delete:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
@@ -152,6 +250,14 @@ button:disabled {
     backdrop-filter: blur(4px);
 }
 
+/* Controls layout improvements */
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .note-card {
@@ -163,8 +269,50 @@ button:disabled {
         gap: 0.25rem;
     }
     
-    .note-up, .note-down, .note-toggle, .note-delete {
+    .note-up, .note-down, .note-delete, .note-save-btn {
         padding: 6px 10px;
         font-size: 0.875rem;
     }
+    
+    .note-toggle {
+        padding: 6px 10px !important;
+        font-size: 1rem !important;
+        min-width: 32px !important;
+    }
+    
+    .note-done-toggle {
+        width: 28px !important;
+        height: 28px !important;
+    }
+}
+
+/* Ensure clickable elements have proper cursor */
+.note-done-toggle,
+.note-save-btn,
+.note-up,
+.note-down,
+.note-toggle,
+.note-delete {
+    cursor: pointer !important;
+}
+
+/* Visual feedback for active states */
+.note-done-toggle:active,
+.note-save-btn:active,
+.note-up:active,
+.note-down:active,
+.note-toggle:active,
+.note-delete:active {
+    transform: scale(0.95);
+}
+
+/* Improved visual hierarchy */
+.note-card .header {
+    position: relative;
+    z-index: 1;
+}
+
+.note-card .controls {
+    position: relative;
+    z-index: 2;
 }

@@ -4,6 +4,7 @@ const App = {
     notes: [],
     uniqueSystems: new Set(),
     currentSearchQuery: '',
+    pendingChanges: new Set(), // Track notes with unsaved changes
 
     // --- Initialization ---
     init() {
@@ -67,8 +68,10 @@ const App = {
             });
         }
 
-        // Event delegation for note actions
+        // Event delegation for note actions - ENHANCED FOR TRAFFIC LIGHT
         document.body.addEventListener('click', async (e) => {
+            console.log('🖱️ Click detected on element:', e.target.tagName, e.target.className);
+            
             const noteCard = e.target.closest('.note-card');
             if (!noteCard) return;
 
@@ -81,42 +84,69 @@ const App = {
                 return;
             }
 
-            // Toggle completion status
-            if (e.target.closest('.note-done-toggle')) {
-                console.log('Toggle completion clicked for note:', note.title);
+            console.log('📝 Processing click for note:', note.title);
+
+            // TRAFFIC LIGHT TOGGLE - MULTIPLE DETECTION METHODS
+            const isToggleClick = e.target.classList.contains('note-done-toggle') ||
+                                e.target.closest('.note-done-toggle') ||
+                                e.target.tagName === 'circle' ||
+                                e.target.tagName === 'svg' && e.target.closest('.note-done-toggle');
+
+            if (isToggleClick) {
+                console.log('🚦 TRAFFIC LIGHT CLICKED for note:', note.title);
+                e.preventDefault();
+                e.stopPropagation();
                 await this.toggleNoteCompletion(note, noteIndex);
+                return;
+            }
+
+            // Save button click
+            if (e.target.classList.contains('note-save-btn')) {
+                console.log('💾 Save button clicked for note:', note.title);
+                e.preventDefault();
+                e.stopPropagation();
+                await this.saveNote(note);
                 return;
             }
 
             // Delete note
             if (e.target.closest('.note-delete')) {
-                console.log('Delete clicked for note:', note.title);
+                console.log('🗑️ Delete clicked for note:', note.title);
+                e.preventDefault();
+                e.stopPropagation();
                 this.deleteNote(note.id, note.title);
                 return;
             }
 
             // Toggle note body
-            if (e.target.closest('.note-toggle')) {
-                console.log('Toggle body clicked for note:', note.title);
+            if (e.target.classList.contains('note-toggle') || e.target.closest('.note-toggle')) {
+                console.log('📖 Toggle body clicked for note:', note.title);
+                console.log('📖 Clicked element:', e.target.tagName, e.target.className);
+                e.preventDefault();
+                e.stopPropagation();
                 this.toggleNoteBody(noteCard);
                 return;
             }
             
             // Move note up/down
             if (e.target.closest('.note-up')) {
-                console.log('Move up clicked for note:', note.title);
+                console.log('⬆️ Move up clicked for note:', note.title);
+                e.preventDefault();
+                e.stopPropagation();
                 await this.moveNote(noteIndex, -1);
                 return;
             }
             if (e.target.closest('.note-down')) {
-                console.log('Move down clicked for note:', note.title);
+                console.log('⬇️ Move down clicked for note:', note.title);
+                e.preventDefault();
+                e.stopPropagation();
                 await this.moveNote(noteIndex, 1);
                 return;
             }
         });
         
         // Handle edits to contenteditable fields and inputs
-        document.body.addEventListener('input', async (e) => {
+        document.body.addEventListener('input', (e) => {
             const noteCard = e.target.closest('.note-card');
             if (!noteCard) return;
              
@@ -131,12 +161,20 @@ const App = {
                 fieldChanged = true;
             }
             if (e.target.classList.contains('note-description')) {
-                note.description = e.target.textContent.trim();
-                fieldChanged = true;
+                const text = e.target.textContent.trim();
+                if (text !== 'Add your description here.') {
+                    note.description = text;
+                    e.target.classList.remove('placeholder-text');
+                    fieldChanged = true;
+                }
             }
             if (e.target.classList.contains('note-tags')) {
-                note.tags = e.target.textContent.trim();
-                fieldChanged = true;
+                const text = e.target.textContent.trim();
+                if (text !== 'Add tags here (comma-separated)') {
+                    note.tags = text;
+                    e.target.classList.remove('placeholder-text');
+                    fieldChanged = true;
+                }
             }
             if (e.target.classList.contains('note-comments')) {
                 note.comments = e.target.value;
@@ -149,12 +187,70 @@ const App = {
             }
             
             if (fieldChanged) {
-                console.log('Field changed for note:', note.title);
-                await this.updateNoteInCloud(note);
+                console.log('📝 Field changed for note:', note.title);
+                this.markNoteAsChanged(note.id);
             }
         });
 
+        // Handle focus/blur for contenteditable placeholder behavior
+        document.body.addEventListener('focus', (e) => {
+            if (e.target.classList.contains('note-description')) {
+                const text = e.target.textContent.trim();
+                if (text === 'Add your description here.') {
+                    e.target.textContent = '';
+                    e.target.classList.remove('placeholder-text');
+                }
+            }
+            if (e.target.classList.contains('note-tags')) {
+                const text = e.target.textContent.trim();
+                if (text === 'Add tags here (comma-separated)') {
+                    e.target.textContent = '';
+                    e.target.classList.remove('placeholder-text');
+                }
+            }
+        }, true);
+
+        document.body.addEventListener('blur', (e) => {
+            if (e.target.classList.contains('note-description')) {
+                const text = e.target.textContent.trim();
+                if (text === '') {
+                    e.target.textContent = 'Add your description here.';
+                    e.target.classList.add('placeholder-text');
+                }
+            }
+            if (e.target.classList.contains('note-tags')) {
+                const text = e.target.textContent.trim();
+                if (text === '') {
+                    e.target.textContent = 'Add tags here (comma-separated)';
+                    e.target.classList.add('placeholder-text');
+                }
+            }
+        }, true);
+
         console.log('All event listeners attached');
+    },
+
+    // --- Note Change Tracking ---
+    markNoteAsChanged(noteId) {
+        this.pendingChanges.add(noteId);
+        this.updateSaveButtons();
+    },
+
+    updateSaveButtons() {
+        document.querySelectorAll('.note-save-btn').forEach(btn => {
+            const noteCard = btn.closest('.note-card');
+            if (noteCard && this.pendingChanges.has(noteCard.dataset.id)) {
+                btn.classList.remove('opacity-50');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            } else {
+                btn.classList.add('opacity-50');
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+                btn.disabled = true;
+                btn.textContent = 'Saved';
+            }
+        });
     },
 
     // --- API Communication Functions ---
@@ -304,6 +400,9 @@ const App = {
             this.completedSection.classList.toggle('hidden', doneNotes.length === 0);
         }
 
+        // Update save buttons
+        this.updateSaveButtons();
+
         // Update status message
         if (this.notes.length === 0 && !this.currentSearchQuery) {
             this.updateStatus('No notes to display. Click "Add Note" to create your first note.');
@@ -331,44 +430,105 @@ const App = {
         const systemElement = card.querySelector('.note-system');
         
         if (titleElement) titleElement.textContent = note.title || 'Untitled';
-        if (descriptionElement) descriptionElement.textContent = note.description || 'Add your description here.';
-        if (tagsElement) tagsElement.textContent = note.tags || 'new';
+        
+        // Handle description with placeholder
+        if (descriptionElement) {
+            if (note.description && note.description.trim() !== '' && note.description !== 'Add your description here.') {
+                descriptionElement.textContent = note.description;
+                descriptionElement.classList.remove('placeholder-text');
+            } else {
+                descriptionElement.textContent = 'Add your description here.';
+                descriptionElement.classList.add('placeholder-text');
+            }
+        }
+        
+        // Handle tags with placeholder
+        if (tagsElement) {
+            if (note.tags && note.tags.trim() !== '' && note.tags !== 'Add tags here (comma-separated)') {
+                tagsElement.textContent = note.tags;
+                tagsElement.classList.remove('placeholder-text');
+            } else {
+                tagsElement.textContent = 'Add tags here (comma-separated)';
+                tagsElement.classList.add('placeholder-text');
+            }
+        }
+        
         if (commentsElement) commentsElement.value = note.comments || '';
         if (systemElement) systemElement.value = note.system || '';
 
-        // Set up toggle button styling
+        // Set up note body collapse state (template starts collapsed)
+        const noteBody = card.querySelector('.note-body');
+        const toggleButton = card.querySelector('.note-toggle');
+        if (noteBody && toggleButton) {
+            // Notes start collapsed by default (as set in template)
+            // The template already has 'collapsed' class, so we just need to ensure the button is correct
+            const isCollapsed = noteBody.classList.contains('collapsed');
+            toggleButton.textContent = isCollapsed ? '▸' : '▾';
+            
+            console.log('📖 Note body state for', note.title, ':', isCollapsed ? 'collapsed' : 'expanded');
+        }
+
+        // Set up traffic light toggle button - ENHANCED
         const doneToggleButton = card.querySelector('.note-done-toggle');
         if (doneToggleButton) {
+            console.log('🚦 Setting up traffic light for note:', note.title, 'done:', note.done);
+            
             // Remove all existing color classes
             doneToggleButton.classList.remove(
                 'bg-green-500', 'hover:bg-green-600', 'focus:ring-green-500',
                 'bg-yellow-500', 'hover:bg-yellow-600', 'focus:ring-yellow-500',
-                'bg-red-500', 'hover:bg-red-600', 'focus:ring-red-500'
+                'bg-red-500', 'hover:bg-red-600', 'focus:ring-red-500',
+                'bg-gray-500', 'hover:bg-gray-600', 'focus:ring-gray-500'
             );
+
+            // Make sure it's clickable
+            doneToggleButton.style.cursor = 'pointer';
+            doneToggleButton.style.pointerEvents = 'auto';
 
             if (note.done) {
                 card.classList.add('is-done');
                 doneToggleButton.classList.add('bg-green-500', 'hover:bg-green-600', 'focus:ring-green-500');
                 doneToggleButton.title = 'Mark as Active';
+                console.log('🟢 Button set to GREEN (completed)');
             } else {
                 card.classList.remove('is-done');
                 doneToggleButton.classList.add('bg-yellow-500', 'hover:bg-yellow-600', 'focus:ring-yellow-500');
                 doneToggleButton.title = 'Mark as Done';
+                console.log('🟡 Button set to YELLOW (active)');
             }
+        } else {
+            console.error('❌ Traffic light button not found in card');
+        }
+
+        // Add save button to controls
+        const controls = card.querySelector('.controls');
+        if (controls) {
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'note-save-btn bg-gray-400 hover:bg-gray-500 text-white text-xs px-2 py-1 rounded transition-colors duration-300 opacity-50';
+            saveBtn.textContent = 'Saved';
+            saveBtn.title = 'Save Changes';
+            saveBtn.disabled = true;
+            
+            // Insert before the first control button
+            controls.insertBefore(saveBtn, controls.firstChild);
         }
         
         return card;
     },
 
     async toggleNoteCompletion(note, noteIndex) {
+        const oldStatus = note.done;
         const newDoneStatus = !note.done;
         const now = new Date().toISOString();
+
+        console.log(`🔄 Toggling note completion: "${note.title}" from ${oldStatus} to ${newDoneStatus}`);
 
         if (newDoneStatus) {
             note.done = true;
             note.dateDone = now;
             note.dateUndone = '';
             this.updateStatus(`Note "${note.title}" marked as completed.`, 'success');
+            console.log('✅ Note marked as DONE');
         } else {
             note.done = false;
             note.dateUndone = now;
@@ -378,13 +538,62 @@ const App = {
             this.notes.splice(noteIndex, 1);
             this.notes.unshift(note);
             this.updateStatus(`Note "${note.title}" marked as active and moved to top.`, 'info');
+            console.log('🔄 Note marked as ACTIVE and moved to top');
         }
 
-        await this.updateNoteInCloud(note);
-        this.render();
+        // Update in cloud immediately
+        console.log('💾 Saving toggle to cloud...');
+        const result = await this.sendDataToCloud('update', note);
+        
+        if (result.success) {
+            console.log('✅ Toggle saved to cloud successfully');
+            // Re-render the UI
+            this.render();
 
-        if (!newDoneStatus) {
-            await this.reassignAndSavePriorities();
+            // Update priorities if needed
+            if (!newDoneStatus) {
+                console.log('📊 Updating priorities...');
+                await this.reassignAndSavePriorities();
+            }
+        } else {
+            console.error('❌ Failed to save toggle to cloud');
+            // Revert the change
+            note.done = oldStatus;
+            if (oldStatus) {
+                note.dateDone = note.dateDone || now;
+                note.dateUndone = '';
+            } else {
+                note.dateUndone = note.dateUndone || now;
+                note.dateDone = '';
+            }
+            this.render();
+        }
+        
+        console.log('✅ Toggle completion finished');
+    },
+
+    async saveNote(note) {
+        console.log('💾 Manually saving note:', note.title);
+        
+        const result = await this.sendDataToCloud('update', note);
+        if (result.success) {
+            this.pendingChanges.delete(note.id);
+            this.updateSaveButtons();
+            this.updateStatus(`Note "${note.title}" saved successfully.`, 'success');
+            
+            // Show saved indicator
+            const noteCard = document.querySelector(`.note-card[data-id="${note.id}"]`);
+            if (noteCard) {
+                const indicator = noteCard.querySelector('.note-save-indicator');
+                if (indicator) {
+                    indicator.style.opacity = '1';
+                    setTimeout(() => {
+                        indicator.style.opacity = '0';
+                    }, 2000);
+                }
+            }
+        } else {
+            this.updateStatus(`Failed to save note "${note.title}".`, 'error');
         }
     },
     
@@ -395,8 +604,8 @@ const App = {
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
             title: 'New Note',
-            description: 'Add your description here.',
-            tags: 'new',
+            description: '',
+            tags: '',
             comments: '',
             system: '',
             dateDone: '',
@@ -425,30 +634,13 @@ const App = {
         }
     },
 
-    async updateNoteInCloud(note) {
-        const result = await this.sendDataToCloud('update', note);
-        if (result.success) {
-            // Show per-note "Saved!" indicator
-            const noteCard = document.querySelector(`.note-card[data-id="${note.id}"]`);
-            if (noteCard) {
-                const indicator = noteCard.querySelector('.note-save-indicator');
-                if (indicator) {
-                    indicator.style.opacity = '1';
-                    setTimeout(() => {
-                        indicator.style.opacity = '0';
-                    }, 2000);
-                }
-            }
-            this.updateStatus('Note updated successfully.', 'success');
-        }
-    },
-
     async deleteNote(noteId, noteTitle) {
         this.showConfirmationModal(`Are you sure you want to delete "${noteTitle}"?`, async () => {
             this.updateStatus('Deleting note...', 'info');
             const result = await this.sendDataToCloud('delete', { id: noteId });
             if (result.success) {
                 this.notes = this.notes.filter(note => note.id !== noteId);
+                this.pendingChanges.delete(noteId);
                 this.render();
                 await this.reassignAndSavePriorities();
                 this.updateStatus(`Note "${noteTitle}" deleted successfully.`, 'success');
@@ -489,7 +681,7 @@ const App = {
                 const newPriority = activeNoteCounter * PRIORITY_STEP;
                 if (Number(note.priority) !== newPriority) {
                     note.priority = newPriority;
-                    updates.push(this.updateNoteInCloud(note));
+                    updates.push(this.sendDataToCloud('update', note));
                 }
                 activeNoteCounter++;
             }
@@ -504,9 +696,29 @@ const App = {
         const noteBody = noteCard.querySelector('.note-body');
         const toggleButton = noteCard.querySelector('.note-toggle');
         
+        console.log('📖 Toggle note body called');
+        console.log('📖 Note body found:', !!noteBody);
+        console.log('📖 Toggle button found:', !!toggleButton);
+        
         if (noteBody && toggleButton) {
+            const wasCollapsed = noteBody.classList.contains('collapsed');
+            console.log('📖 Was collapsed:', wasCollapsed);
+            
             noteBody.classList.toggle('collapsed');
-            toggleButton.textContent = noteBody.classList.contains('collapsed') ? '▸' : '▾';
+            const isNowCollapsed = noteBody.classList.contains('collapsed');
+            console.log('📖 Is now collapsed:', isNowCollapsed);
+            
+            toggleButton.textContent = isNowCollapsed ? '▸' : '▾';
+            console.log('📖 Toggle button text set to:', toggleButton.textContent);
+            
+            // Add visual feedback
+            if (isNowCollapsed) {
+                console.log('📖 Note body collapsed');
+            } else {
+                console.log('📖 Note body expanded');
+            }
+        } else {
+            console.error('📖 Missing elements - noteBody:', !!noteBody, 'toggleButton:', !!toggleButton);
         }
     },
 
