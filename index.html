@@ -51,7 +51,7 @@
         </footer>
     </div>
 
-    <template id="note-template">
+   <template id="note-template">
         <div class="note-card bg-white dark:bg-gray-700 rounded-lg shadow-md transition-all duration-300">
             <div class="header flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
                 <div class="flex items-center flex-grow">
@@ -63,33 +63,14 @@
                     <h2 class="note-title text-xl font-semibold flex-grow" contenteditable="true">Note Title</h2>
                 </div>
                 <div class="controls flex items-center gap-2 ml-4">
+                    <span class="note-save-indicator text-sm text-green-500 opacity-0 transition-opacity duration-500 ease-in-out mr-2">Saved!</span>
                     <button title="Move Up" class="note-up text-gray-400 hover:text-green-500 transition-colors">▲</button>
                     <button title="Move Down" class="note-down text-gray-400 hover:text-red-500 transition-colors">▼</button>
                     <button title="Expand/Collapse" class="note-toggle text-gray-400 hover:text-blue-500 transition-colors text-2xl font-mono">▾</button>
                     <button title="Delete Note" class="note-delete text-gray-400 hover:text-red-600 transition-colors font-bold">✕</button>
                 </div>
             </div>
-            <div class="note-body p-4 space-y-4">
-                <div>
-                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">Description</label>
-                    <p class="note-description" contenteditable="true">Note description goes here.</p>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">System</label>
-                    <input type="text" class="note-system w-full p-2 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Work Laptop, Home PC, Server" list="system-suggestions">
-                    <datalist id="system-suggestions">
-                        </datalist>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">Tags</label>
-                    <p class="note-tags text-indigo-500 dark:text-indigo-400" contenteditable="true">tag1, tag2</p>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">Comments</label>
-                    <textarea class="note-comments w-full p-2 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Add comments..."></textarea>
-                </div>
             </div>
-        </div>
     </template>
 
 <script src="script.js"></script>
