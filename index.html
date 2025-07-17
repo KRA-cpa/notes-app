@@ -23,7 +23,7 @@
                 <button id="add-note-button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
                     + Add Note
                 </button>
-                </div>
+            </div>
             
             <div class="w-full mt-4 flex flex-wrap items-center gap-3">
                 <input type="text" id="tag-search-input" placeholder="Search tags (e.g., work, urgent)"
@@ -38,20 +38,24 @@
         </header>
 
         <main id="notes-container" class="space-y-4">
-            </main>
+        </main>
         
         <div id="completed-section" class="mt-12 hidden">
             <h2 class="text-xl font-bold text-gray-500 dark:text-gray-400 border-b-2 border-gray-200 dark:border-gray-700 pb-2 mb-4">Completed Notes</h2>
             <div id="done-notes-container" class="space-y-4 opacity-70">
-                </div>
+            </div>
         </div>
 
         <footer class="text-center mt-6">
-             <p id="status-message" class="text-sm text-gray-500 dark:text-gray-400">Welcome! Add a note or open an XML file to begin.</p>
+             <p id="status-message" class="text-sm text-gray-500 dark:text-gray-400">Welcome! Add a note to begin.</p>
         </footer>
     </div>
 
-   <template id="note-template">
+    <!-- System Suggestions Datalist -->
+    <datalist id="system-suggestions">
+    </datalist>
+
+    <template id="note-template">
         <div class="note-card bg-white dark:bg-gray-700 rounded-lg shadow-md transition-all duration-300">
             <div class="header flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
                 <div class="flex items-center flex-grow">
@@ -70,9 +74,35 @@
                     <button title="Delete Note" class="note-delete text-gray-400 hover:text-red-600 transition-colors font-bold">✕</button>
                 </div>
             </div>
+            
+            <div class="note-body p-4 space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <div class="note-description bg-gray-50 dark:bg-gray-600 p-3 rounded-lg min-h-[60px] text-gray-900 dark:text-gray-100" contenteditable="true">
+                        Add your description here.
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+                    <div class="note-tags bg-gray-50 dark:bg-gray-600 p-3 rounded-lg text-gray-900 dark:text-gray-100" contenteditable="true">
+                        new
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System</label>
+                    <input type="text" class="note-system w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500" list="system-suggestions" placeholder="Enter system name">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comments</label>
+                    <textarea class="note-comments w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 resize-none" rows="3" placeholder="Add your comments here..."></textarea>
+                </div>
             </div>
+        </div>
     </template>
 
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

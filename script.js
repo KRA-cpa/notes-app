@@ -14,9 +14,6 @@ const App = {
     clearSearchButton: document.getElementById('clear-search-button'),
     systemSuggestionsDatalist: document.getElementById('system-suggestions'),
 
-    // --- Apps Script Web App URL ---
-    APPS_SCRIPT_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbzofp1lc9V2Fw-HjmOKVUNMQMVcWqS1IyCxhp3ltL2lS3sJFRwBNZfL3mGVCZJHxXtFXA/exec', // <<< REPLACE THIS!
-
     // --- Data Store ---
     notes: [],
     uniqueSystems: new Set(),
@@ -29,7 +26,7 @@ const App = {
     // --- Initialization ---
     init() {
         this.addEventListeners();
-        this.updateStatus('Connecting to Google Sheet...', 'info'); // Initial connection attempt status
+        this.updateStatus('Connecting to Google Sheet...', 'info');
         this.loadNotesFromCloud();
     },
 
@@ -37,10 +34,6 @@ const App = {
     addEventListeners() {
         console.log("App event listeners initialized.");
         this.addNoteButton.addEventListener('click', () => this.addNewNote());
-        
-        // Remove listeners for XML operations
-        // this.saveButton.addEventListener('click', () => this.saveToXML());
-        // this.fileInput.addEventListener('change', (e) => { this.loadFromXML(e); });
 
         this.searchTagsButton.addEventListener('click', () => this.searchTags());
         this.clearSearchButton.addEventListener('click', () => this.clearSearch());
@@ -121,58 +114,55 @@ const App = {
     },
 
     // --- API Communication Functions ---
-
-async fetchDataFromCloud() {
-    try {
-        const response = await fetch('/api/notes', {
-            method: 'GET'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to load: HTTP status ${response.status}`);
+    async fetchDataFromCloud() {
+        try {
+            const response = await fetch('/api/notes', {
+                method: 'GET'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load: HTTP status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            this.updateStatus('Connected to Google Sheet.', 'success');
+            return data;
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            this.updateStatus(`Connection Error: ${error.message || 'Failed to connect/load notes.'} Check Apps Script URL and deployment permissions.`, 'error');
+            return [];
         }
-        
-        const data = await response.json();
-        this.updateStatus('Connected to Google Sheet.', 'success');
-        return data;
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        this.updateStatus(`Connection Error: ${error.message || 'Failed to connect/load notes.'} Check Apps Script URL and deployment permissions.`, 'error');
-        return [];
-    }
-},
+    },
 
-async sendDataToCloud(action, noteData) {
-    try {
-        const response = await fetch('/api/update-note', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ action: action, note: noteData })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to save: HTTP status ${response.status}`);
+    async sendDataToCloud(action, noteData) {
+        try {
+            const response = await fetch('/api/update-note', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: action, note: noteData })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to save: HTTP status ${response.status}`);
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(`API Error: ${result.message}`);
+            }
+            
+            this.updateStatus('Data synced to Google Sheet.', 'success');
+            return result;
+        } catch (error) {
+            console.error(`Error performing ${action} action:`, error);
+            this.updateStatus(`Sync Error: ${error.message || `Failed to ${action} note.`} Check server connection.`, 'error');
+            return { success: false, message: error.message };
         }
-        
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(`API Error: ${result.message}`);
-        }
-        
-        this.updateStatus('Data synced to Google Sheet.', 'success');
-        return result;
-    } catch (error) {
-        console.error(`Error performing ${action} action:`, error);
-        this.updateStatus(`Sync Error: ${error.message || `Failed to ${action} note.`} Check server connection.`, 'error');
-        return { success: false, message: error.message };
-    }
-}    
+    },
 
-
-
-    // --- System Suggestions Logic (Unchanged) ---
+    // --- System Suggestions Logic ---
     addUniqueSystem(systemValue) {
         systemValue = systemValue.trim();
         if (systemValue && !this.uniqueSystems.has(systemValue)) {
@@ -182,12 +172,14 @@ async sendDataToCloud(action, noteData) {
     },
 
     populateSystemDatalist() {
-        this.systemSuggestionsDatalist.innerHTML = '';
-        Array.from(this.uniqueSystems).sort().forEach(system => {
-            const option = document.createElement('option');
-            option.value = system;
-            this.systemSuggestionsDatalist.appendChild(option);
-        });
+        if (this.systemSuggestionsDatalist) {
+            this.systemSuggestionsDatalist.innerHTML = '';
+            Array.from(this.uniqueSystems).sort().forEach(system => {
+                const option = document.createElement('option');
+                option.value = system;
+                this.systemSuggestionsDatalist.appendChild(option);
+            });
+        }
     },
 
     // --- Core Logic ---
@@ -243,7 +235,6 @@ async sendDataToCloud(action, noteData) {
         this.doneNotesContainer.innerHTML = '';
 
         const activeNotes = notesToDisplay.filter(n => !n.done);
-
         const doneNotes = notesToDisplay.filter(n => n.done);
         doneNotes.sort((a, b) => {
             const dateA = a.dateDone ? new Date(a.dateDone) : new Date(0);
@@ -270,9 +261,9 @@ async sendDataToCloud(action, noteData) {
         card.dataset.id = note.id;
         
         card.querySelector('.note-title').textContent = note.title;
-        card.querySelector('.note-description').textContent = note.description;
-        card.querySelector('.note-tags').textContent = note.tags;
-        card.querySelector('.note-comments').value = note.comments;
+        card.querySelector('.note-description').textContent = note.description || 'Add your description here.';
+        card.querySelector('.note-tags').textContent = note.tags || 'new';
+        card.querySelector('.note-comments').value = note.comments || '';
         
         const systemInput = card.querySelector('.note-system');
         if (systemInput) {
@@ -307,11 +298,23 @@ async sendDataToCloud(action, noteData) {
             priority: 0,
             done: false
         };
-        this.notes.unshift(newNote); 
+        
+        // Add to local array first
+        this.notes.unshift(newNote);
         this.render();
-
-        await this.reassignAndSavePriorities();
-        this.updateStatus('Added a new note to cloud and updated order.', 'success');
+        
+        // Save to cloud
+        const result = await this.sendDataToCloud('add', newNote);
+        if (result.success) {
+            await this.reassignAndSavePriorities();
+            this.updateStatus('Added a new note to cloud and updated order.', 'success');
+        } else {
+            // If save failed, remove from local array
+            this.notes = this.notes.filter(note => note.id !== newNote.id);
+            this.render();
+            this.updateStatus('Failed to add note to cloud.', 'error');
+        }
+        
         this.addUniqueSystem(newNote.system);
     },
 
@@ -323,12 +326,12 @@ async sendDataToCloud(action, noteData) {
             if (noteCard) {
                 const indicator = noteCard.querySelector('.note-save-indicator');
                 if (indicator) {
-                    indicator.classList.remove('opacity-0'); // Make visible
-                    indicator.classList.add('opacity-100'); // Ensure full opacity
+                    indicator.classList.remove('opacity-0');
+                    indicator.classList.add('opacity-100');
                     setTimeout(() => {
-                        indicator.classList.remove('opacity-100'); // Start fade out
+                        indicator.classList.remove('opacity-100');
                         indicator.classList.add('opacity-0');
-                    }, 2000); // Hide after 2 seconds
+                    }, 2000);
                 }
             }
         }
@@ -341,7 +344,6 @@ async sendDataToCloud(action, noteData) {
                 this.notes = this.notes.filter(note => note.id !== noteId);
                 this.updateStatus(`Note "${noteTitle}" deleted from cloud.`, 'warn');
                 this.render();
-
                 await this.reassignAndSavePriorities();
             }
         });
@@ -365,7 +367,6 @@ async sendDataToCloud(action, noteData) {
 
         this.render();
         this.updateStatus('Note moved visually. Saving new order...', 'info');
-
         await this.reassignAndSavePriorities();
         this.updateStatus('Note order saved to cloud.', 'success');
     },
@@ -405,8 +406,6 @@ async sendDataToCloud(action, noteData) {
                     updates.push(this.updateNoteInCloud(note));
                 }
                 activeNoteCounter++;
-            } else {
-                // For done notes, their priority is not actively managed by reassignAndSavePriorities
             }
         }
         
@@ -418,9 +417,12 @@ async sendDataToCloud(action, noteData) {
     },
 
     toggleNoteBody(noteCard) {
-        noteCard.querySelector('.note-body').classList.toggle('collapsed');
-        const toggleButton = noteCard.querySelector('.note-toggle');
-        toggleButton.textContent = toggleButton.textContent === '▾' ? '▸' : '▾';
+        const noteBody = noteCard.querySelector('.note-body');
+        if (noteBody) {
+            noteBody.classList.toggle('collapsed');
+            const toggleButton = noteCard.querySelector('.note-toggle');
+            toggleButton.textContent = toggleButton.textContent === '▾' ? '▸' : '▾';
+        }
     },
 
     // --- Tag Search Logic ---
