@@ -43,32 +43,6 @@ body { font-family: 'Inter', sans-serif; }
     display: none !important; /* Hides the entire note body section. */
 }
 
-/* Toggle button styling */
-.note-toggle {
-    font-family: monospace !important;
-    font-size: 1.2rem !important;
-    line-height: 1 !important;
-    user-select: none !important;
-    cursor: pointer !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    border: none !important;
-    background: transparent !important;
-    min-width: 28px !important;
-    text-align: center !important;
-    transition: all 0.2s ease !important;
-}
-
-.note-toggle:hover {
-    background-color: rgba(59, 130, 246, 0.1) !important;
-    color: #3b82f6 !important;
-    transform: scale(1.1) !important;
-}
-
-.note-toggle:active {
-    transform: scale(0.9) !important;
-}
-
 /* Styling for note cards that are marked as 'done'. */
 .note-card.is-done {
     background-color: #f9fafb; /* Light gray background for done notes. */
@@ -162,6 +136,32 @@ body { font-family: 'Inter', sans-serif; }
 .note-save-btn:not(:disabled):hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle button styling */
+.note-toggle {
+    font-family: monospace !important;
+    font-size: 1.2rem !important;
+    line-height: 1 !important;
+    user-select: none !important;
+    cursor: pointer !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background: transparent !important;
+    min-width: 28px !important;
+    text-align: center !important;
+    transition: all 0.2s ease !important;
+}
+
+.note-toggle:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    color: #3b82f6 !important;
+    transform: scale(1.1) !important;
+}
+
+.note-toggle:active {
+    transform: scale(0.9) !important;
 }
 
 /* Control buttons styling */

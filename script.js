@@ -68,9 +68,9 @@ const App = {
             });
         }
 
-        // Event delegation for note actions - ENHANCED FOR TRAFFIC LIGHT
+        // Event delegation for note actions - ENHANCED
         document.body.addEventListener('click', async (e) => {
-            console.log('🖱️ Click detected on element:', e.target.tagName, e.target.className);
+            console.log('🖱️ Click detected on:', e.target.tagName, e.target.className);
             
             const noteCard = e.target.closest('.note-card');
             if (!noteCard) return;
@@ -118,10 +118,9 @@ const App = {
                 return;
             }
 
-            // Toggle note body
+            // Toggle note body - ENHANCED DETECTION
             if (e.target.classList.contains('note-toggle') || e.target.closest('.note-toggle')) {
                 console.log('📖 Toggle body clicked for note:', note.title);
-                console.log('📖 Clicked element:', e.target.tagName, e.target.className);
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleNoteBody(noteCard);
@@ -444,7 +443,7 @@ const App = {
         
         // Handle tags with placeholder
         if (tagsElement) {
-            if (note.tags && note.tags.trim() !== '' && note.tags !== 'Add tags here (comma-separated)') {
+            if (note.tags && note.tags.trim() !== '' && note.tags !== 'Add tags here (comma-separated)' && note.tags !== 'new') {
                 tagsElement.textContent = note.tags;
                 tagsElement.classList.remove('placeholder-text');
             } else {
@@ -456,16 +455,13 @@ const App = {
         if (commentsElement) commentsElement.value = note.comments || '';
         if (systemElement) systemElement.value = note.system || '';
 
-        // Set up note body collapse state (template starts collapsed)
+        // Set up note body collapse state (start collapsed)
         const noteBody = card.querySelector('.note-body');
         const toggleButton = card.querySelector('.note-toggle');
         if (noteBody && toggleButton) {
-            // Notes start collapsed by default (as set in template)
-            // The template already has 'collapsed' class, so we just need to ensure the button is correct
-            const isCollapsed = noteBody.classList.contains('collapsed');
-            toggleButton.textContent = isCollapsed ? '▸' : '▾';
-            
-            console.log('📖 Note body state for', note.title, ':', isCollapsed ? 'collapsed' : 'expanded');
+            noteBody.classList.add('collapsed');
+            toggleButton.textContent = '▸';
+            console.log('📖 Note body initialized as collapsed for:', note.title);
         }
 
         // Set up traffic light toggle button - ENHANCED
@@ -509,8 +505,13 @@ const App = {
             saveBtn.title = 'Save Changes';
             saveBtn.disabled = true;
             
-            // Insert before the first control button
-            controls.insertBefore(saveBtn, controls.firstChild);
+            // Insert before the save indicator
+            const saveIndicator = controls.querySelector('.note-save-indicator');
+            if (saveIndicator) {
+                controls.insertBefore(saveBtn, saveIndicator);
+            } else {
+                controls.insertBefore(saveBtn, controls.firstChild);
+            }
         }
         
         return card;
@@ -631,6 +632,24 @@ const App = {
             this.notes = this.notes.filter(note => note.id !== newNote.id);
             this.render();
             this.updateStatus('Failed to add note. Please try again.', 'error');
+        }
+    },
+
+    async updateNoteInCloud(note) {
+        const result = await this.sendDataToCloud('update', note);
+        if (result.success) {
+            // Show per-note "Saved!" indicator
+            const noteCard = document.querySelector(`.note-card[data-id="${note.id}"]`);
+            if (noteCard) {
+                const indicator = noteCard.querySelector('.note-save-indicator');
+                if (indicator) {
+                    indicator.style.opacity = '1';
+                    setTimeout(() => {
+                        indicator.style.opacity = '0';
+                    }, 2000);
+                }
+            }
+            this.updateStatus('Note updated successfully.', 'success');
         }
     },
 
