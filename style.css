@@ -1,0 +1,37 @@
+/* Sets the default font for the entire body to 'Inter' from Google Fonts. */
+body { font-family: 'Inter', sans-serif; }
+
+/* Styles for elements with the 'contenteditable' attribute.
+   These are fields that users can directly edit in the UI (like note titles, descriptions, tags). */
+[contenteditable] {
+    outline: none; /* Removes the default blue outline on focus. */
+    border-bottom: 2px dashed transparent; /* Adds a subtle dashed bottom border, initially transparent. */
+    transition: border-color 0.3s; /* Smooth transition for border color changes. */
+}
+/* Styles applied when contenteditable elements are hovered over or focused. */
+[contenteditable]:hover, [contenteditable]:focus {
+    border-bottom-color: #4f46e5; /* Changes the dashed border to Indigo on hover/focus, providing visual feedback. */
+}
+
+/* Style to hide the note body when it's collapsed. */
+.note-body.collapsed { 
+    display: none; /* Hides the entire note body section. */
+}
+
+/* Styling for note cards that are marked as 'done'. */
+.note-card.is-done {
+    background-color: #f9fafb; /* Light gray background for done notes. */
+}
+/* Dark mode specific background color for done notes. */
+.dark .note-card.is-done {
+    background-color: #1f2937; /* Darker gray background in dark mode. */
+}
+/* Styles for the title of done notes. */
+.note-card.is-done .note-title {
+    text-decoration: line-through; /* Adds a strikethrough to the title. */
+    color: #6b7280; /* Gray out the title text. */
+}
+/* Dark mode specific text color for titles of done notes. */
+.dark .note-card.is-done .note-title {
+    color: #4b5563; /* Even darker gray in dark mode. */
+}

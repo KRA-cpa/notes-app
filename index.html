@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Notes App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 flex flex-col items-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl">
+        <header class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 sticky top-4 z-10 flex flex-wrap items-center justify-between gap-4">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📝 Local Notes</h1>
+            <div class="flex items-center gap-3">
+                <button id="add-note-button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                    + Add Note
+                </button>
+                <label for="file-input" class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                    Open File...
+                </label>
+                <input type="file" id="file-input" class="hidden" accept=".xml,text/xml">
+                <button id="save-button" class="bg-green-600 hover:bg-green-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                    Save to XML
+                </button>
+            </div>
+            <div class="w-full mt-4 flex flex-wrap items-center gap-3">
+                <input type="text" id="tag-search-input" placeholder="Search tags (e.g., work, urgent)"
+                        class="flex-grow p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500">
+                <button id="search-tags-button" class="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                    Search Tags
+                </button>
+                <button id="clear-search-button" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                    Clear Search
+                </button>
+            </div>
+        </header>
+
+        <main id="notes-container" class="space-y-4">
+            </main>
+        
+        <div id="completed-section" class="mt-12 hidden">
+            <h2 class="text-xl font-bold text-gray-500 dark:text-gray-400 border-b-2 border-gray-200 dark:border-gray-700 pb-2 mb-4">Completed Notes</h2>
+            <div id="done-notes-container" class="space-y-4 opacity-70">
+                </div>
+        </div>
+
+        <footer class="text-center mt-6">
+             <p id="status-message" class="text-sm text-gray-500 dark:text-gray-400">Welcome! Add a note or open an XML file to begin.</p>
+        </footer>
+    </div>
+
+    <template id="note-template">
+        <div class="note-card bg-white dark:bg-gray-700 rounded-lg shadow-md transition-all duration-300">
+            <div class="header flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+                <div class="flex items-center flex-grow">
+                    <button title="Toggle Completion" class="note-done-toggle w-6 h-6 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 mr-4">
+                        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="12"/>
+                        </svg>
+                    </button>
+                    <h2 class="note-title text-xl font-semibold flex-grow" contenteditable="true">Note Title</h2>
+                </div>
+                <div class="controls flex items-center gap-2 ml-4">
+                    <button title="Move Up" class="note-up text-gray-400 hover:text-green-500 transition-colors">▲</button>
+                    <button title="Move Down" class="note-down text-gray-400 hover:text-red-500 transition-colors">▼</button>
+                    <button title="Expand/Collapse" class="note-toggle text-gray-400 hover:text-blue-500 transition-colors text-2xl font-mono">▾</button>
+                    <button title="Delete Note" class="note-delete text-gray-400 hover:text-red-600 transition-colors font-bold">✕</button>
+                </div>
+            </div>
+            <div class="note-body p-4 space-y-4">
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">Description</label>
+                    <p class="note-description" contenteditable="true">Note description goes here.</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">System</label>
+                    <input type="text" class="note-system w-full p-2 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Work Laptop, Home PC, Server" list="system-suggestions">
+                    <datalist id="system-suggestions">
+                        </datalist>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">Tags</label>
+                    <p class="note-tags text-indigo-500 dark:text-indigo-400" contenteditable="true">tag1, tag2</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-1">Comments</label>
+                    <textarea class="note-comments w-full p-2 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Add comments..."></textarea>
+                </div>
+            </div>
+        </div>
+    </template>
+
+<script src="script.js"></script>
+</body>
+</html>
