@@ -68,7 +68,7 @@ const App = {
             });
         }
 
-        // Event delegation for note actions - ENHANCED
+        // Event delegation for note actions - FIXED
         document.body.addEventListener('click', async (e) => {
             console.log('🖱️ Click detected on:', e.target.tagName, e.target.className);
             
@@ -86,14 +86,13 @@ const App = {
 
             console.log('📝 Processing click for note:', note.title);
 
-            // TRAFFIC LIGHT TOGGLE - MULTIPLE DETECTION METHODS
-            const isToggleClick = e.target.classList.contains('note-done-toggle') ||
-                                e.target.closest('.note-done-toggle') ||
-                                e.target.tagName === 'circle' ||
-                                e.target.tagName === 'svg' && e.target.closest('.note-done-toggle');
-
-            if (isToggleClick) {
-                console.log('🚦 TRAFFIC LIGHT CLICKED for note:', note.title);
+            // TRAFFIC LIGHT TOGGLE - FIXED DETECTION
+            if (e.target.classList.contains('note-done-toggle') || 
+                e.target.closest('.note-done-toggle') ||
+                (e.target.tagName === 'svg' && e.target.closest('.note-done-toggle')) ||
+                (e.target.tagName === 'circle' && e.target.closest('.note-done-toggle'))) {
+                
+                console.log('🚦 TRAFFIC LIGHT CLICKED for note:', note.title, 'current status:', note.done);
                 e.preventDefault();
                 e.stopPropagation();
                 await this.toggleNoteCompletion(note, noteIndex);
@@ -118,8 +117,12 @@ const App = {
                 return;
             }
 
-            // Toggle note body - ENHANCED DETECTION
-            if (e.target.classList.contains('note-toggle') || e.target.closest('.note-toggle')) {
+            // Toggle note body - FIXED DETECTION
+            if (e.target.classList.contains('note-toggle') || 
+                e.target.closest('.note-toggle') ||
+                e.target.textContent === '▸' || 
+                e.target.textContent === '▾') {
+                
                 console.log('📖 Toggle body clicked for note:', note.title);
                 e.preventDefault();
                 e.stopPropagation();
@@ -127,7 +130,7 @@ const App = {
                 return;
             }
             
-            // Move note up/down
+            // Move note up/down - FIXED LOGIC
             if (e.target.closest('.note-up')) {
                 console.log('⬆️ Move up clicked for note:', note.title);
                 e.preventDefault();
@@ -455,32 +458,26 @@ const App = {
         if (commentsElement) commentsElement.value = note.comments || '';
         if (systemElement) systemElement.value = note.system || '';
 
-        // Set up note body collapse state (start collapsed)
+        // Set up note body collapse state - FIXED
         const noteBody = card.querySelector('.note-body');
         const toggleButton = card.querySelector('.note-toggle');
         if (noteBody && toggleButton) {
+            // Start collapsed
             noteBody.classList.add('collapsed');
             toggleButton.textContent = '▸';
+            toggleButton.setAttribute('data-collapsed', 'true');
             console.log('📖 Note body initialized as collapsed for:', note.title);
         }
 
-        // Set up traffic light toggle button - ENHANCED
+        // Set up traffic light toggle button - FIXED
         const doneToggleButton = card.querySelector('.note-done-toggle');
         if (doneToggleButton) {
-            console.log('🚦 Setting up traffic light for note:', note.title, 'done:', note.done);
+            console.log('🚦 Setting up traffic light for note:', note.title, 'done status:', note.done);
             
-            // Remove all existing color classes
-            doneToggleButton.classList.remove(
-                'bg-green-500', 'hover:bg-green-600', 'focus:ring-green-500',
-                'bg-yellow-500', 'hover:bg-yellow-600', 'focus:ring-yellow-500',
-                'bg-red-500', 'hover:bg-red-600', 'focus:ring-red-500',
-                'bg-gray-500', 'hover:bg-gray-600', 'focus:ring-gray-500'
-            );
-
-            // Make sure it's clickable
-            doneToggleButton.style.cursor = 'pointer';
-            doneToggleButton.style.pointerEvents = 'auto';
-
+            // Clear all existing classes
+            doneToggleButton.className = 'note-done-toggle w-6 h-6 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 mr-4';
+            
+            // Apply correct styling based on done status
             if (note.done) {
                 card.classList.add('is-done');
                 doneToggleButton.classList.add('bg-green-500', 'hover:bg-green-600', 'focus:ring-green-500');
@@ -492,8 +489,6 @@ const App = {
                 doneToggleButton.title = 'Mark as Done';
                 console.log('🟡 Button set to YELLOW (active)');
             }
-        } else {
-            console.error('❌ Traffic light button not found in card');
         }
 
         // Add save button to controls
@@ -517,48 +512,38 @@ const App = {
         return card;
     },
 
+    // FIXED: Toggle Note Completion
     async toggleNoteCompletion(note, noteIndex) {
         const oldStatus = note.done;
         const newDoneStatus = !note.done;
         const now = new Date().toISOString();
 
-        console.log(`🔄 Toggling note completion: "${note.title}" from ${oldStatus} to ${newDoneStatus}`);
+        console.log(`🔄 Toggling completion: "${note.title}" from ${oldStatus} to ${newDoneStatus}`);
 
+        // Update the note status
+        note.done = newDoneStatus;
+        
         if (newDoneStatus) {
-            note.done = true;
             note.dateDone = now;
             note.dateUndone = '';
             this.updateStatus(`Note "${note.title}" marked as completed.`, 'success');
-            console.log('✅ Note marked as DONE');
         } else {
-            note.done = false;
             note.dateUndone = now;
             note.dateDone = '';
-            
             // Move to top of active notes
             this.notes.splice(noteIndex, 1);
             this.notes.unshift(note);
             this.updateStatus(`Note "${note.title}" marked as active and moved to top.`, 'info');
-            console.log('🔄 Note marked as ACTIVE and moved to top');
         }
 
-        // Update in cloud immediately
-        console.log('💾 Saving toggle to cloud...');
+        // CRITICAL: Update UI immediately BEFORE saving to cloud
+        this.render();
+
+        // Save to cloud
         const result = await this.sendDataToCloud('update', note);
         
-        if (result.success) {
-            console.log('✅ Toggle saved to cloud successfully');
-            // Re-render the UI
-            this.render();
-
-            // Update priorities if needed
-            if (!newDoneStatus) {
-                console.log('📊 Updating priorities...');
-                await this.reassignAndSavePriorities();
-            }
-        } else {
-            console.error('❌ Failed to save toggle to cloud');
-            // Revert the change
+        if (!result.success) {
+            // Revert on failure
             note.done = oldStatus;
             if (oldStatus) {
                 note.dateDone = note.dateDone || now;
@@ -568,9 +553,13 @@ const App = {
                 note.dateDone = '';
             }
             this.render();
+            this.updateStatus(`Failed to update note "${note.title}".`, 'error');
+        } else {
+            // Update priorities if needed
+            if (!newDoneStatus) {
+                await this.reassignAndSavePriorities();
+            }
         }
-        
-        console.log('✅ Toggle completion finished');
     },
 
     async saveNote(note) {
@@ -619,9 +608,6 @@ const App = {
         this.notes.unshift(newNote);
         this.render();
         
-        // Show temporary status
-        this.updateStatus('Adding new note...', 'info');
-        
         // Save to cloud
         const result = await this.sendDataToCloud('add', newNote);
         if (result.success) {
@@ -667,6 +653,7 @@ const App = {
         });
     },
 
+    // FIXED: Move Note Logic
     async moveNote(index, direction) {
         const note = this.notes[index];
         if (note.done) {
@@ -674,14 +661,28 @@ const App = {
             return;
         }
 
-        const newIndex = index + direction;
-        if (newIndex < 0 || newIndex >= this.notes.length) {
+        // Filter only active notes for proper indexing
+        const activeNotes = this.notes.filter(n => !n.done);
+        const activeIndex = activeNotes.findIndex(n => n.id === note.id);
+        
+        console.log(`📊 Moving note "${note.title}" from position ${activeIndex} (direction: ${direction})`);
+        
+        // Check bounds within active notes
+        const newActiveIndex = activeIndex + direction;
+        if (newActiveIndex < 0 || newActiveIndex >= activeNotes.length) {
+            console.log('📊 Move blocked - out of bounds');
             return;
         }
 
-        // Move in array
-        this.notes.splice(index, 1);
-        this.notes.splice(newIndex, 0, note);
+        // Find the target note to swap with
+        const targetNote = activeNotes[newActiveIndex];
+        const targetIndex = this.notes.findIndex(n => n.id === targetNote.id);
+        
+        console.log(`📊 Swapping with note "${targetNote.title}" at position ${newActiveIndex}`);
+        
+        // Swap the notes in the main array
+        this.notes[index] = targetNote;
+        this.notes[targetIndex] = note;
 
         this.render();
         this.updateStatus('Updating note order...', 'info');
@@ -711,30 +712,29 @@ const App = {
         }
     },
 
+    // FIXED: Toggle Note Body
     toggleNoteBody(noteCard) {
         const noteBody = noteCard.querySelector('.note-body');
         const toggleButton = noteCard.querySelector('.note-toggle');
         
         console.log('📖 Toggle note body called');
-        console.log('📖 Note body found:', !!noteBody);
-        console.log('📖 Toggle button found:', !!toggleButton);
         
         if (noteBody && toggleButton) {
-            const wasCollapsed = noteBody.classList.contains('collapsed');
-            console.log('📖 Was collapsed:', wasCollapsed);
+            const isCollapsed = noteBody.classList.contains('collapsed');
+            console.log('📖 Current state - collapsed:', isCollapsed);
             
-            noteBody.classList.toggle('collapsed');
-            const isNowCollapsed = noteBody.classList.contains('collapsed');
-            console.log('📖 Is now collapsed:', isNowCollapsed);
-            
-            toggleButton.textContent = isNowCollapsed ? '▸' : '▾';
-            console.log('📖 Toggle button text set to:', toggleButton.textContent);
-            
-            // Add visual feedback
-            if (isNowCollapsed) {
-                console.log('📖 Note body collapsed');
+            if (isCollapsed) {
+                // Expand
+                noteBody.classList.remove('collapsed');
+                toggleButton.textContent = '▾';
+                toggleButton.setAttribute('data-collapsed', 'false');
+                console.log('📖 Note expanded');
             } else {
-                console.log('📖 Note body expanded');
+                // Collapse
+                noteBody.classList.add('collapsed');
+                toggleButton.textContent = '▸';
+                toggleButton.setAttribute('data-collapsed', 'true');
+                console.log('📖 Note collapsed');
             }
         } else {
             console.error('📖 Missing elements - noteBody:', !!noteBody, 'toggleButton:', !!toggleButton);
