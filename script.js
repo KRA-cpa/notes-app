@@ -15,7 +15,7 @@ const App = {
     systemSuggestionsDatalist: document.getElementById('system-suggestions'),
 
     // --- Apps Script Web App URL ---
-    APPS_SCRIPT_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbz0sCeofYbicIaqX5tVqJIFqTrP1So9krWhGKccKSySztbpY4Ay-NHGhW42N9V7tfwz/exec', // <<< REPLACE THIS!
+    APPS_SCRIPT_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbzofp1lc9V2Fw-HjmOKVUNMQMVcWqS1IyCxhp3ltL2lS3sJFRwBNZfL3mGVCZJHxXtFXA/exec', // <<< REPLACE THIS!
 
     // --- Data Store ---
     notes: [],
