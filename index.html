@@ -14,52 +14,102 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Google Sign-In API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
     
-    <div class="container mx-auto max-w-4xl p-4">
-        <!-- Header -->
-        <header class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📝 Notes App</h1>
+    <!-- Authentication Container (shown when not logged in) -->
+    <div id="auth-container" class="hidden">
+        <div class="auth-page">
+            <div class="auth-content">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">📝 Notes App</h1>
+                <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">Sign in with your Google account to access your personal notes</p>
                 
-                <button id="add-note-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    + Add Note
-                </button>
+                <!-- Google Sign-In Button -->
+                <div id="g_id_onload"
+                     data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                     data-callback="handleGoogleSignIn"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" 
+                     data-type="standard"
+                     data-size="large"
+                     data-theme="outline"
+                     data-text="sign_in_with"
+                     data-shape="rectangular"
+                     data-logo_alignment="left">
+                </div>
             </div>
-            
-            <!-- Search Bar -->
-            <div class="mt-4 flex flex-col sm:flex-row gap-2">
-                <input 
-                    type="text" 
-                    id="search-input" 
-                    placeholder="Search tags (comma-separated)" 
-                    class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                <button id="search-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    Search
-                </button>
-                <button id="clear-search-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    Clear
-                </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="auth-loading" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 text-center">
+            <div class="loading-spinner w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-gray-700 dark:text-gray-300">Authenticating...</p>
+        </div>
+    </div>
+
+    <!-- Main App Container (shown when logged in) -->
+    <div id="app-container" class="hidden">
+        <div class="container mx-auto max-w-4xl p-4">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📝 Notes App</h1>
+                        
+                        <!-- User Profile -->
+                        <div id="user-profile" class="hidden flex items-center gap-3 ml-4">
+                            <img id="user-avatar" class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600" alt="User Avatar">
+                            <span id="user-name" class="text-sm font-medium text-gray-700 dark:text-gray-300"></span>
+                            <button id="logout-btn" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-lg font-medium transition-colors">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button id="add-note-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        + Add Note
+                    </button>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="mt-4 flex flex-col sm:flex-row gap-2">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="Search tags (comma-separated)" 
+                        class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                    <button id="search-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        Search
+                    </button>
+                    <button id="clear-search-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        Clear
+                    </button>
+                </div>
+            </header>
+
+            <!-- Status Message -->
+            <div id="status-message" class="mb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                Welcome! Click "Add Note" to get started.
             </div>
-        </header>
 
-        <!-- Status Message -->
-        <div id="status-message" class="mb-4 text-center text-sm text-gray-600 dark:text-gray-400">
-            Welcome! Click "Add Note" to get started.
-        </div>
+            <!-- Active Notes -->
+            <div id="active-notes-container" class="space-y-4 mb-8">
+            </div>
 
-        <!-- Active Notes -->
-        <div id="active-notes-container" class="space-y-4 mb-8">
-        </div>
-
-        <!-- Completed Notes Section -->
-        <div id="completed-section" class="hidden">
-            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-                Completed Notes
-            </h2>
-            <div id="completed-notes-container" class="space-y-4 opacity-75">
+            <!-- Completed Notes Section -->
+            <div id="completed-section" class="hidden">
+                <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    Completed Notes
+                </h2>
+                <div id="completed-notes-container" class="space-y-4 opacity-75">
+                </div>
             </div>
         </div>
     </div>
@@ -88,6 +138,10 @@
                         <span class="note-order hidden"></span>
                         <span class="note-timestamp"></span>
                     </div>
+                    <!-- Readonly indicator for completed notes -->
+                    <div class="readonly-indicator hidden text-xs text-amber-600 dark:text-amber-400 mt-1 px-2 italic">
+                        📖 Read-only (mark as active to edit)
+                    </div>
                 </div>
 
                 <!-- Controls -->
@@ -98,6 +152,7 @@
                     <span class="save-indicator text-xs text-green-600 opacity-0 transition-opacity duration-300">
                         Saved!
                     </span>
+                    <!-- Move buttons (hidden for completed notes) -->
                     <button class="move-up-btn text-gray-400 hover:text-green-600 p-1 rounded transition-colors" title="Move Up">
                         ↑
                     </button>
@@ -107,6 +162,7 @@
                     <button class="expand-btn text-gray-400 hover:text-blue-600 p-1 rounded transition-colors font-mono text-sm" title="Expand">
                         ▸
                     </button>
+                    <!-- Delete button (hidden for completed notes) -->
                     <button class="delete-btn text-gray-400 hover:text-red-600 p-1 rounded transition-colors font-bold" title="Delete">
                         ✕
                     </button>

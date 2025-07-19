@@ -1,9 +1,162 @@
 /*  style.css */
 
-//* Font */
+/* Font */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* ===== AUTHENTICATION STYLES ===== */
+
+/* Authentication Page */
+.auth-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.auth-content {
+    background: white;
+    border-radius: 16px;
+    padding: 3rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 400px;
+    width: 100%;
+}
+
+.dark .auth-content {
+    background: #1f2937;
+    color: white;
+}
+
+/* Google Sign-In Button Styling */
+.g_id_signin {
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+}
+
+/* User Profile */
+#user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark #user-profile {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+#user-avatar {
+    flex-shrink: 0;
+}
+
+#user-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+.dark #user-name {
+    color: #e5e7eb;
+}
+
+/* Loading States */
+.loading-spinner {
+    border-color: #e5e7eb;
+    border-top-color: #3b82f6;
+}
+
+/* ===== READ-ONLY COMPLETED NOTES STYLES ===== */
+
+/* Read-only states for completed notes */
+.note-card.completed [contenteditable] {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #64748b !important;
+    cursor: not-allowed;
+    user-select: none;
+    pointer-events: none;
+}
+
+.dark .note-card.completed [contenteditable] {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #64748b !important;
+}
+
+.note-card.completed input,
+.note-card.completed textarea {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #64748b !important;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.dark .note-card.completed input,
+.dark .note-card.completed textarea {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #64748b !important;
+}
+
+/* Hide action buttons for completed notes */
+.note-card.completed .save-btn,
+.note-card.completed .move-up-btn,
+.note-card.completed .move-down-btn,
+.note-card.completed .delete-btn {
+    display: none !important;
+}
+
+/* Show readonly indicator for completed notes */
+.note-card.completed .readonly-indicator {
+    display: block !important;
+}
+
+/* Traffic light remains interactive for completed notes */
+.note-card.completed .traffic-light {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+/* Completed note visual distinction */
+.note-card.completed {
+    background-color: #fafafa;
+    border-color: #e5e7eb;
+    opacity: 0.85;
+}
+
+.dark .note-card.completed {
+    background-color: #1f2937;
+    border-color: #374151;
+}
+
+/* Readonly indicator styling */
+.readonly-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.dark .readonly-indicator {
+    background: rgba(245, 158, 11, 0.2);
+}
+
+/* ===== EXISTING STYLES (Enhanced) ===== */
 
 /* Note Header Layout */
 .note-header {
@@ -109,16 +262,7 @@ body {
     ring-color: #059669;
 }
 
-/* Completed Note Styling */
-.note-card.completed {
-    opacity: 0.8;
-    background-color: #f9fafb;
-}
-
-.dark .note-card.completed {
-    background-color: #1f2937;
-}
-
+/* Enhanced Completed Note Styling */
 .note-card.completed .note-title {
     text-decoration: line-through;
     color: #6b7280;
@@ -314,8 +458,13 @@ input:focus, textarea:focus, [contenteditable]:focus {
     background: #64748b;
 }
 
-/* Responsive Design */
+/* Enhanced Responsive Design */
 @media (max-width: 640px) {
+    .auth-content {
+        padding: 2rem;
+        margin: 1rem;
+    }
+    
     .note-header {
         flex-direction: column;
         gap: 8px;
@@ -351,6 +500,20 @@ input:focus, textarea:focus, [contenteditable]:focus {
         align-self: flex-start;
         margin-top: 2px;
     }
+    
+    #user-profile {
+        gap: 8px;
+        padding: 6px 12px;
+    }
+    
+    #user-name {
+        font-size: 14px;
+    }
+    
+    .readonly-indicator {
+        font-size: 11px;
+        padding: 1px 6px;
+    }
 }
 
 /* Focus Indicators for Accessibility */
@@ -370,9 +533,20 @@ button:focus, input:focus, textarea:focus, [contenteditable]:focus {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Enhanced Authentication Loading */
+#auth-loading {
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 /* Print Styles */
 @media print {
-    .controls, #add-note-btn, #search-input, #search-btn, #clear-search-btn {
+    .controls, #add-note-btn, #search-input, #search-btn, #clear-search-btn, #user-profile {
         display: none !important;
     }
     
@@ -383,6 +557,11 @@ button:focus, input:focus, textarea:focus, [contenteditable]:focus {
     .note-card {
         break-inside: avoid;
         margin-bottom: 16px;
+    }
+    
+    .readonly-indicator {
+        background: #f3f4f6 !important;
+        color: #374151 !important;
     }
 }
 
@@ -395,6 +574,10 @@ button:focus, input:focus, textarea:focus, [contenteditable]:focus {
     .note-card {
         border-width: 2px;
     }
+    
+    .readonly-indicator {
+        border: 1px solid #d97706;
+    }
 }
 
 /* Reduced Motion */
@@ -404,4 +587,19 @@ button:focus, input:focus, textarea:focus, [contenteditable]:focus {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* Dark mode enhancements for authentication */
+.dark .auth-page {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+}
+
+/* Enhanced user experience for readonly notes */
+.note-card.completed:hover .readonly-indicator {
+    background: rgba(245, 158, 11, 0.2);
+    transform: scale(1.02);
+}
+
+.dark .note-card.completed:hover .readonly-indicator {
+    background: rgba(245, 158, 11, 0.3);
 }

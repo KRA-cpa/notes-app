@@ -1,9 +1,13 @@
-export default async function handler(req, res) {
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzofp1lc9V2Fw-HjmOKVUNMQMVcWqS1IyCxhp3ltL2lS3sJFRwBNZfL3mGVCZJHxXtFXA/exec';
+// notes.js
+
+  import { requireAuth } from '../lib/middleware';
+
+async function handler(req, res) {
+  const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
   
   if (req.method === 'GET') {
     try {
-      const response = await fetch(APPS_SCRIPT_URL, {
+      const response = await fetch(`${APPS_SCRIPT_URL}?X-User-ID=${req.user.sub}&X-User-Email=${req.user.email}&X-User-Name=${req.user.name}`, {
         method: 'GET'
       });
       
@@ -21,3 +25,5 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
+
+export default requireAuth(handler);

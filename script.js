@@ -1,8 +1,8 @@
 // script.js
 
 /**
- * Notes App - Complete Rewrite
- * A comprehensive notes management application with Google Sheets integration
+ * Notes App - Complete Rewrite with Authentication
+ * A comprehensive notes management application with Google authentication and read-only completed notes
  */
 
 class NotesApp {
@@ -12,6 +12,11 @@ class NotesApp {
         this.systemSuggestions = new Set();
         this.pendingChanges = new Set();
         this.currentSearch = '';
+        
+        // Authentication state
+        this.currentUser = null;
+        this.authToken = null;
+        this.isAuthenticated = false;
         
         // DOM elements
         this.elements = {};
@@ -28,11 +33,9 @@ class NotesApp {
         
         this.initializeDOM();
         this.setupEventListeners();
-        this.updateStatus('Connecting to Google Sheets...', 'info');
         
-        await this.loadNotesFromCloud();
-        
-        console.log('✅ Notes App initialized successfully');
+        // Check authentication status first
+        await this.checkAuthStatus();
     }
 
     /**
@@ -40,6 +43,16 @@ class NotesApp {
      */
     initializeDOM() {
         this.elements = {
+            // Auth elements
+            authContainer: document.getElementById('auth-container'),
+            authLoading: document.getElementById('auth-loading'),
+            appContainer: document.getElementById('app-container'),
+            userProfile: document.getElementById('user-profile'),
+            userAvatar: document.getElementById('user-avatar'),
+            userName: document.getElementById('user-name'),
+            logoutBtn: document.getElementById('logout-btn'),
+            
+            // App elements
             addNoteBtn: document.getElementById('add-note-btn'),
             searchInput: document.getElementById('search-input'),
             searchBtn: document.getElementById('search-btn'),
@@ -57,7 +70,7 @@ class NotesApp {
         };
 
         // Validate critical elements
-        const critical = ['addNoteBtn', 'noteTemplate', 'activeNotesContainer'];
+        const critical = ['authContainer', 'appContainer', 'addNoteBtn', 'noteTemplate', 'activeNotesContainer'];
         critical.forEach(key => {
             if (!this.elements[key]) {
                 console.error(`❌ Critical element missing: ${key}`);
@@ -70,6 +83,9 @@ class NotesApp {
      */
     setupEventListeners() {
         console.log('📡 Setting up event listeners...');
+
+        // Auth listeners
+        this.elements.logoutBtn?.addEventListener('click', () => this.handleLogout());
 
         // Add note button
         this.elements.addNoteBtn?.addEventListener('click', () => this.addNote());
@@ -95,9 +111,162 @@ class NotesApp {
     }
 
     /**
+     * Check authentication status on app load
+     */
+    async checkAuthStatus() {
+        console.log('🔐 Checking authentication status...');
+        
+        const token = localStorage.getItem('authToken');
+        const user = localStorage.getItem('currentUser');
+        
+        if (token && user) {
+            try {
+                this.authToken = token;
+                this.currentUser = JSON.parse(user);
+                
+                // Verify token is still valid by making a test API call
+                await this.verifyAuthToken();
+                
+                this.isAuthenticated = true;
+                this.showApp();
+                await this.loadNotesFromCloud();
+                console.log('✅ Authentication verified');
+            } catch (error) {
+                console.log('⚠️ Stored token is invalid, showing login');
+                this.clearAuthData();
+                this.showAuthPage();
+            }
+        } else {
+            console.log('🔓 No stored authentication, showing login');
+            this.showAuthPage();
+        }
+    }
+
+    /**
+     * Verify stored auth token is still valid
+     */
+    async verifyAuthToken() {
+        const response = await fetch('/api/notes', {
+            headers: {
+                'Authorization': `Bearer ${this.authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Token verification failed');
+        }
+    }
+
+    /**
+     * Show authentication page
+     */
+    showAuthPage() {
+        if (this.elements.authContainer) {
+            this.elements.authContainer.classList.remove('hidden');
+        }
+        if (this.elements.appContainer) {
+            this.elements.appContainer.classList.add('hidden');
+        }
+        this.updateStatus('Please sign in to access your notes', 'info');
+    }
+
+    /**
+     * Show main app
+     */
+    showApp() {
+        if (this.elements.authContainer) {
+            this.elements.authContainer.classList.add('hidden');
+        }
+        if (this.elements.appContainer) {
+            this.elements.appContainer.classList.remove('hidden');
+        }
+        this.updateUserProfile();
+    }
+
+    /**
+     * Show authentication loading
+     */
+    showAuthLoading() {
+        if (this.elements.authLoading) {
+            this.elements.authLoading.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Hide authentication loading
+     */
+    hideAuthLoading() {
+        if (this.elements.authLoading) {
+            this.elements.authLoading.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Update user profile display
+     */
+    updateUserProfile() {
+        if (!this.currentUser || !this.elements.userProfile) return;
+        
+        if (this.elements.userAvatar) {
+            this.elements.userAvatar.src = this.currentUser.picture || '';
+            this.elements.userAvatar.alt = this.currentUser.name || 'User';
+        }
+        
+        if (this.elements.userName) {
+            this.elements.userName.textContent = this.currentUser.name || this.currentUser.email || 'User';
+        }
+        
+        this.elements.userProfile.classList.remove('hidden');
+    }
+
+    /**
+     * Handle logout
+     */
+    async handleLogout() {
+        console.log('🔓 Logging out...');
+        
+        try {
+            // Call logout API
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+        } catch (error) {
+            console.warn('⚠️ Logout API call failed:', error);
+        }
+        
+        this.clearAuthData();
+        this.showAuthPage();
+        this.updateStatus('You have been logged out', 'info');
+    }
+
+    /**
+     * Clear authentication data
+     */
+    clearAuthData() {
+        this.currentUser = null;
+        this.authToken = null;
+        this.isAuthenticated = false;
+        this.notes = [];
+        
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        
+        if (this.elements.userProfile) {
+            this.elements.userProfile.classList.add('hidden');
+        }
+        
+        this.renderNotes();
+    }
+
+    /**
      * Handle global click events
      */
     async handleGlobalClick(e) {
+        if (!this.isAuthenticated) return;
+        
         const noteCard = e.target.closest('.note-card');
         if (!noteCard) return;
 
@@ -151,8 +320,16 @@ class NotesApp {
      * Handle global input events
      */
     handleGlobalInput(e) {
+        if (!this.isAuthenticated) return;
+        
         const noteCard = e.target.closest('.note-card');
         if (!noteCard) return;
+
+        // Ignore input from completed (readonly) notes
+        if (noteCard.classList.contains('completed')) {
+            e.preventDefault();
+            return;
+        }
 
         const noteId = noteCard.dataset.noteId;
         const note = this.notes.find(n => n.id === noteId);
@@ -234,11 +411,24 @@ class NotesApp {
      * Load notes from cloud storage
      */
     async loadNotesFromCloud() {
+        if (!this.isAuthenticated) return;
+        
         try {
             console.log('📥 Loading notes from cloud...');
+            this.updateStatus('Loading notes...', 'info');
             
-            const response = await fetch('/api/notes');
+            const response = await fetch('/api/notes', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+            
             if (!response.ok) {
+                if (response.status === 401) {
+                    this.clearAuthData();
+                    this.showAuthPage();
+                    return;
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
@@ -299,6 +489,8 @@ class NotesApp {
      * Add a new note
      */
     async addNote() {
+        if (!this.isAuthenticated) return;
+        
         console.log('➕ Adding new note...');
         
         const newNote = {
@@ -336,7 +528,7 @@ class NotesApp {
     }
 
     /**
-     * Toggle note completion status
+     * Toggle note completion status with read-only functionality
      */
     async toggleNoteStatus(note) {
         console.log(`🔄 Toggling status for note: ${note.title}`);
@@ -362,6 +554,18 @@ class NotesApp {
             }
         }
 
+        // Update readonly state immediately
+        const noteCard = document.querySelector(`[data-note-id="${note.id}"]`);
+        if (noteCard) {
+            if (note.done) {
+                noteCard.classList.add('completed');
+                this.setNoteReadonly(noteCard, true);
+            } else {
+                noteCard.classList.remove('completed');
+                this.setNoteReadonly(noteCard, false);
+            }
+        }
+
         // Update UI immediately
         this.renderNotes();
         
@@ -373,7 +577,7 @@ class NotesApp {
                 await this.reassignPriorities();
             }
             
-            const statusText = note.done ? 'completed' : 'reactivated';
+            const statusText = note.done ? 'completed (now read-only)' : 'reactivated (now editable)';
             this.updateStatus(`Note ${statusText}`, 'success');
         } catch (error) {
             console.error('❌ Error toggling note status:', error);
@@ -386,8 +590,63 @@ class NotesApp {
                 note.dateUndone = note.dateUndone || now;
                 note.dateDone = '';
             }
+            
+            // Revert readonly state
+            if (noteCard) {
+                if (note.done) {
+                    noteCard.classList.add('completed');
+                    this.setNoteReadonly(noteCard, true);
+                } else {
+                    noteCard.classList.remove('completed');
+                    this.setNoteReadonly(noteCard, false);
+                }
+            }
+            
             this.renderNotes();
             this.updateStatus('Failed to update note status', 'error');
+        }
+    }
+
+    /**
+     * Set note fields to readonly or editable based on completion status
+     */
+    setNoteReadonly(noteCard, isReadonly) {
+        const editableElements = noteCard.querySelectorAll('[contenteditable], input, textarea');
+        const actionButtons = noteCard.querySelectorAll('.save-btn, .move-up-btn, .move-down-btn, .delete-btn');
+        const readonlyIndicator = noteCard.querySelector('.readonly-indicator');
+        
+        editableElements.forEach(element => {
+            if (isReadonly) {
+                // Make readonly
+                if (element.hasAttribute('contenteditable')) {
+                    element.setAttribute('contenteditable', 'false');
+                } else {
+                    element.setAttribute('readonly', true);
+                    element.setAttribute('disabled', true);
+                }
+                element.style.pointerEvents = 'none';
+                element.style.cursor = 'not-allowed';
+            } else {
+                // Make editable
+                if (element.hasAttribute('contenteditable')) {
+                    element.setAttribute('contenteditable', 'true');
+                } else {
+                    element.removeAttribute('readonly');
+                    element.removeAttribute('disabled');
+                }
+                element.style.pointerEvents = 'auto';
+                element.style.cursor = 'text';
+            }
+        });
+        
+        // Hide/show action buttons
+        actionButtons.forEach(button => {
+            button.style.display = isReadonly ? 'none' : 'flex';
+        });
+        
+        // Show/hide readonly indicator
+        if (readonlyIndicator) {
+            readonlyIndicator.classList.toggle('hidden', !isReadonly);
         }
     }
 
@@ -667,7 +926,7 @@ class NotesApp {
         this.updateSaveButtons();
         
         // Update status if not searching
-        if (!this.currentSearch) {
+        if (!this.currentSearch && this.isAuthenticated) {
             this.updateStatus(`${activeNotes.length} active, ${completedNotes.length} completed`, 'info');
         }
     }
@@ -687,7 +946,7 @@ class NotesApp {
     }
 
     /**
-     * Create a note element
+     * Create a note element with read-only support
      */
     createNoteElement(note, orderNumber = null) {
         const template = this.elements.noteTemplate;
@@ -699,9 +958,14 @@ class NotesApp {
         // Set note ID
         noteCard.dataset.noteId = note.id;
         
-        // Set completed state
+        // Set completed state and readonly
         if (note.done) {
             noteCard.classList.add('completed');
+            // Set readonly after DOM insertion
+            setTimeout(() => this.setNoteReadonly(noteCard, true), 0);
+        } else {
+            noteCard.classList.remove('completed');
+            setTimeout(() => this.setNoteReadonly(noteCard, false), 0);
         }
         
         // Set traffic light
@@ -780,7 +1044,7 @@ class NotesApp {
     }
 
     /**
-     * Send data to cloud
+     * Send data to cloud with authentication
      */
     async sendToCloud(action, data) {
         console.log(`☁️ Sending ${action} to cloud...`);
@@ -788,10 +1052,17 @@ class NotesApp {
         const response = await fetch('/api/update-note', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.authToken}`
             },
             body: JSON.stringify({ action, note: data })
         });
+        
+        if (response.status === 401) {
+            this.clearAuthData();
+            this.showAuthPage();
+            throw new Error('Authentication expired');
+        }
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -877,6 +1148,58 @@ class NotesApp {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 }
+
+/**
+ * Global function for Google Sign-In callback
+ */
+window.handleGoogleSignIn = async function(response) {
+    console.log('🔐 Google Sign-In response received');
+    
+    if (!window.notesApp) {
+        console.error('❌ Notes app not initialized');
+        return;
+    }
+    
+    window.notesApp.showAuthLoading();
+    
+    try {
+        // Send token to backend for verification
+        const authResponse = await fetch('/api/auth/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token: response.credential })
+        });
+        
+        if (!authResponse.ok) {
+            const error = await authResponse.json();
+            throw new Error(error.error || 'Authentication failed');
+        }
+        
+        const authData = await authResponse.json();
+        
+        // Store authentication data
+        window.notesApp.currentUser = authData.user;
+        window.notesApp.authToken = authData.token;
+        window.notesApp.isAuthenticated = true;
+        
+        localStorage.setItem('authToken', authData.token);
+        localStorage.setItem('currentUser', JSON.stringify(authData.user));
+        
+        console.log('✅ Authentication successful');
+        
+        // Show app and load notes
+        window.notesApp.hideAuthLoading();
+        window.notesApp.showApp();
+        await window.notesApp.loadNotesFromCloud();
+        
+    } catch (error) {
+        console.error('❌ Authentication error:', error);
+        window.notesApp.hideAuthLoading();
+        window.notesApp.updateStatus(`Authentication failed: ${error.message}`, 'error');
+    }
+};
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
