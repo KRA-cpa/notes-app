@@ -1,13 +1,17 @@
 // notes.js
 
-  import { requireAuth } from '../lib/middleware';
+import { requireAuth } from '../lib/middleware';
 
 async function handler(req, res) {
-  const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-  
   if (req.method === 'GET') {
     try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?X-User-ID=${req.user.sub}&X-User-Email=${req.user.email}&X-User-Name=${req.user.name}`, {
+      // Build URL with user context as query parameters
+      const url = new URL(process.env.APPS_SCRIPT_URL);
+      url.searchParams.append('X-User-ID', req.user.sub);
+      url.searchParams.append('X-User-Email', req.user.email);
+      url.searchParams.append('X-User-Name', req.user.name || '');
+
+      const response = await fetch(url.toString(), {
         method: 'GET'
       });
       

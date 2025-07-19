@@ -1,21 +1,24 @@
+// update-note.js
+
 import { requireAuth } from '../lib/middleware';
 
 async function handler(req, res) {
-  const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-  
   if (req.method === 'POST') {
     try {
-      const response = await fetch(APPS_SCRIPT_URL, {
+      // Add user context to the request body
+      const requestBody = {
+        ...req.body,
+        'X-User-ID': req.user.sub,
+        'X-User-Email': req.user.email,
+        'X-User-Name': req.user.name || ''
+      };
+
+      const response = await fetch(process.env.APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
         },
-        body: JSON.stringify({
-          ...req.body,
-          'X-User-ID': req.user.sub,
-          'X-User-Email': req.user.email,
-          'X-User-Name': req.user.name
-        })
+        body: JSON.stringify(requestBody)
       });
       
       if (!response.ok) {
