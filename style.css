@@ -1,4 +1,5 @@
 /*  style.css */
+/*  style.css */
 
 /* Font */
 body {
@@ -26,11 +27,32 @@ body {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     max-width: 400px;
     width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark .auth-content {
     background: #1f2937;
     color: white;
+    border-color: #374151;
+}
+
+/* Enhanced text contrast for auth page */
+.auth-content h1 {
+    color: #1e293b !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.auth-content p {
+    color: #334155 !important;
+}
+
+.dark .auth-content h1 {
+    color: #f8fafc !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .auth-content p {
+    color: #e2e8f0 !important;
 }
 
 /* Google Sign-In Button Styling */
