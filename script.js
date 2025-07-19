@@ -1046,9 +1046,15 @@ class NotesApp {
     /**
      * Send data to cloud with authentication
      */
-    async sendToCloud(action, data) {
-        console.log(`☁️ Sending ${action} to cloud...`);
-        
+
+    /**
+ * Send data to cloud with detailed error handling
+ */
+async sendToCloud(action, data) {
+    console.log(`☁️ Sending ${action} to cloud...`);
+    console.log('📤 Data being sent:', data);
+    
+    try {
         const response = await fetch('/api/update-note', {
             method: 'POST',
             headers: {
@@ -1058,24 +1064,50 @@ class NotesApp {
             body: JSON.stringify({ action, note: data })
         });
         
+        console.log('📊 Response status:', response.status);
+        console.log('📊 Response headers:', [...response.headers.entries()]);
+        
         if (response.status === 401) {
             this.clearAuthData();
             this.showAuthPage();
-            throw new Error('Authentication expired');
+            throw new Error('Authentication expired - please sign in again');
         }
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ Backend error:', errorData);
+            
+            const errorMessage = errorData.details || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+            throw new Error(`Backend error: ${errorMessage}`);
         }
         
         const result = await response.json();
+        console.log('✅ Backend response:', result);
         
         if (!result.success) {
-            throw new Error(result.message || 'Unknown error');
+            const errorMessage = result.message || result.error || 'Operation failed';
+            console.error('❌ Operation unsuccessful:', result);
+            throw new Error(`Apps Script error: ${errorMessage}`);
         }
         
+        console.log('✅ Cloud operation successful');
         return result;
+        
+    } catch (error) {
+        console.error('❌ sendToCloud error:', {
+            action,
+            data,
+            error: error.message,
+            stack: error.stack
+        });
+        throw error;
     }
+}
+
+  /**
+     * END Send data to cloud with authentication
+     */
+
 
     /**
      * Show modal
