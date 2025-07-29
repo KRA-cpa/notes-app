@@ -601,29 +601,50 @@ function rowToNote(row, headers) {
  * ADDED: Parse encrypted data from JSON strings or malformed format
  */
 function tryParseEncrypted(value) {
+  console.log('🔍 tryParseEncrypted input:', typeof value, value);
+  
   if (typeof value === 'string' && value.startsWith('{') && value.includes('encrypted')) {
     try {
       // First try normal JSON parsing
-      return JSON.parse(value);
+      const parsed = JSON.parse(value);
+      console.log('✅ Standard JSON parsing succeeded:', parsed);
+      return parsed;
     } catch (e) {
       console.warn('⚠️ Standard JSON parsing failed, trying to fix malformed format:', value);
       
       // Try to fix the malformed format {key=value} -> {"key":"value"}
       try {
         let fixedValue = value;
-        // Replace = with : and add quotes around keys and values
-        fixedValue = fixedValue.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^,}]+)/g, '"$1":"$2"');
-        // Fix version number (remove quotes from numbers)
-        fixedValue = fixedValue.replace(/"version"\s*:\s*"(\d+(?:\.\d+)?)"/, '"version":$1');
         
-        console.log('🔧 Attempting to parse fixed format:', fixedValue);
-        return JSON.parse(fixedValue);
+        // More comprehensive regex to handle the malformed format
+        // Handle: {version=1.0, iv=abc123, encrypted=xyz789}
+        fixedValue = fixedValue.replace(/\{([^}]+)\}/, (match, content) => {
+          // Split by comma and process each key=value pair
+          const pairs = content.split(',').map(pair => {
+            const [key, value] = pair.split('=').map(s => s.trim());
+            // Check if value is a number
+            if (key === 'version' && /^\d+(\.\d+)?$/.test(value)) {
+              return `"${key}":${value}`;
+            } else {
+              return `"${key}":"${value}"`;
+            }
+          });
+          return `{${pairs.join(',')}}`;
+        });
+        
+        console.log('🔧 Fixed format:', fixedValue);
+        const parsed = JSON.parse(fixedValue);
+        console.log('✅ Malformed parsing succeeded:', parsed);
+        return parsed;
       } catch (e2) {
-        console.warn('⚠️ Failed to parse malformed encrypted data, returning as plain text:', e2);
+        console.error('❌ Failed to parse malformed encrypted data:', e2);
+        console.log('🔧 Attempted to fix:', fixedValue);
         return value; // Return original if all parsing fails
       }
     }
   }
+  
+  console.log('📤 Returning value as-is:', value);
   return value;
 }
 

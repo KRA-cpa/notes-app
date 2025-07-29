@@ -1563,6 +1563,11 @@ async sendToCloud(action, data) {
 
     // ADDED: Decrypt note data after loading from cloud
     async decryptNoteData(note) {
+        console.log('🔓 decryptNoteData called for note:', note.id);
+        console.log('🔍 Note title type/value:', typeof note.title, note.title);
+        console.log('🔍 Note description type/value:', typeof note.description, note.description);
+        console.log('🔍 Note comments type/value:', typeof note.comments, note.comments);
+        
         if (!this.encryptionManager.isInitialized) {
             console.warn('⚠️ Encryption not initialized, returning data as-is');
             return note;
@@ -1572,16 +1577,28 @@ async sendToCloud(action, data) {
             const decryptedNote = { ...note };
             
             // Decrypt sensitive fields if they are encrypted
+            console.log('🔍 Checking if title is encrypted:', this.encryptionManager.isEncrypted(note.title));
             if (this.encryptionManager.isEncrypted(note.title)) {
+                console.log('🔓 Decrypting title...');
                 decryptedNote.title = await this.encryptionManager.decrypt(note.title);
-            }
-            if (this.encryptionManager.isEncrypted(note.description)) {
-                decryptedNote.description = await this.encryptionManager.decrypt(note.description);
-            }
-            if (this.encryptionManager.isEncrypted(note.comments)) {
-                decryptedNote.comments = await this.encryptionManager.decrypt(note.comments);
+                console.log('✅ Title decrypted:', decryptedNote.title);
             }
             
+            console.log('🔍 Checking if description is encrypted:', this.encryptionManager.isEncrypted(note.description));
+            if (this.encryptionManager.isEncrypted(note.description)) {
+                console.log('🔓 Decrypting description...');
+                decryptedNote.description = await this.encryptionManager.decrypt(note.description);
+                console.log('✅ Description decrypted:', decryptedNote.description);
+            }
+            
+            console.log('🔍 Checking if comments is encrypted:', this.encryptionManager.isEncrypted(note.comments));
+            if (this.encryptionManager.isEncrypted(note.comments)) {
+                console.log('🔓 Decrypting comments...');
+                decryptedNote.comments = await this.encryptionManager.decrypt(note.comments);
+                console.log('✅ Comments decrypted:', decryptedNote.comments);
+            }
+            
+            console.log('✅ Decryption process completed');
             return decryptedNote;
         } catch (error) {
             console.error('❌ Failed to decrypt note data:', error);
