@@ -348,13 +348,14 @@ function addNote(note, user) {
   note.priority = note.priority || 0;              // Default priority for sorting
   
   // Ensure due date fields have defaults (new functionality)
-  // Default due date: tomorrow with no time component (just date)
+  // Default due date: tomorrow in PH timezone with no time component
   if (!note.dueDate) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Get current date in PH timezone
+    const phNow = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+    phNow.setDate(phNow.getDate() + 1);
     // Set to start of day (midnight) to avoid time component
-    tomorrow.setHours(0, 0, 0, 0);
-    note.dueDate = tomorrow.toISOString();
+    phNow.setHours(0, 0, 0, 0);
+    note.dueDate = phNow.toISOString();
   }
   note.isOverdue = note.isOverdue || false;        // Overdue status flag
   note.overdueCheckedAt = note.overdueCheckedAt || ''; // Last overdue check timestamp

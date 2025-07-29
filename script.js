@@ -229,15 +229,14 @@ class PHTimezoneUtils {
     
     static formatDueDateForInput(utcString) {
         if (!utcString) {
-            // If no due date provided, default to tomorrow
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            return tomorrow.toISOString().slice(0, 10);
+            // For existing notes without due date, return empty (don't default to tomorrow)
+            return '';
         }
         
-        // Convert UTC to local date for date input field
+        // Convert UTC to PH date for date input field
         const date = new Date(utcString);
-        return date.toISOString().slice(0, 10); // Format for date input (YYYY-MM-DD)
+        const phDate = new Date(date.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+        return phDate.toISOString().slice(0, 10); // Format for date input (YYYY-MM-DD)
     }
 }
 
@@ -906,12 +905,13 @@ class NotesApp {
             createdBy: this.currentUser?.name || this.currentUser?.email || '',
             lastModified: new Date().toISOString(),
             isShared: false,
-            // ADDED: New due date fields with default tomorrow
+            // ADDED: New due date fields with default tomorrow in PH time
             dueDate: (() => {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(0, 0, 0, 0);
-                return tomorrow.toISOString();
+                // Get current PH time and add 1 day
+                const phNow = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+                phNow.setDate(phNow.getDate() + 1);
+                phNow.setHours(0, 0, 0, 0);
+                return phNow.toISOString();
             })(),
             isOverdue: false,
             overdueCheckedAt: ''
