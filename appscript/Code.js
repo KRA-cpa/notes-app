@@ -999,9 +999,10 @@ function debugDueDateSaving() {
   console.log('📊 Converted row:', row);
   console.log('📊 Row length:', row.length);
   console.log('📅 Due date fields in row:');
-  console.log('   - dueDate (index 15):', row[15]);
-  console.log('   - isOverdue (index 16):', row[16]);
-  console.log('   - overdueCheckedAt (index 17):', row[17]);
+  console.log('   - isShared (index 15):', row[15]);
+  console.log('   - dueDate (index 16):', row[16]);
+  console.log('   - isOverdue (index 17):', row[17]);
+  console.log('   - overdueCheckedAt (index 18):', row[18]);
   
   // Try adding the note
   try {
