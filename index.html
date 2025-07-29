@@ -77,6 +77,12 @@
                     </button>
                 </div>
                 
+                <!-- ADDED: PH Time Display -->
+                <div id="ph-time-display" class="mt-4 text-center text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg py-2 px-4">
+                    <span class="text-blue-600 dark:text-blue-400">🇵🇭 PH Time:</span>
+                    <span id="ph-time-value" class="ml-2 font-mono">Loading...</span>
+                </div>
+                
                 <!-- Search Bar -->
                 <div class="mt-4 flex flex-col sm:flex-row gap-2">
                     <input 
@@ -198,6 +204,17 @@
                         System
                     </label>
                     <input type="text" class="note-system w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" list="system-datalist" placeholder="Enter system name">
+                </div>
+
+                <!-- ADDED: Due Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Due Date <span class="text-xs text-gray-500 dark:text-gray-400">(PH Time)</span>
+                    </label>
+                    <input type="datetime-local" class="note-due-date w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="Select due date and time">
+                    <div class="note-overdue-indicator hidden mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
+                        🚨 Overdue
+                    </div>
                 </div>
 
                 <!-- Comments -->

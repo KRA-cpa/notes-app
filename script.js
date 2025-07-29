@@ -5,6 +5,239 @@
  * A comprehensive notes management application with Google authentication and read-only completed notes
  */
 
+/**
+ * EncryptionManager - Handles client-side encryption/decryption of sensitive note data
+ * Uses AES-256-GCM for authenticated encryption
+ */
+class EncryptionManager {
+    constructor() {
+        this.key = null;
+        this.isInitialized = false;
+    }
+
+    /**
+     * Initialize encryption with user-specific key
+     */
+    async initialize(userSub) {
+        try {
+            console.log('🔐 Initializing encryption for user:', userSub);
+            
+            // Derive user-specific key from Google ID + app secret
+            const keyMaterial = await this.deriveKeyMaterial(userSub);
+            this.key = await window.crypto.subtle.importKey(
+                'raw',
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+            
+            this.isInitialized = true;
+            console.log('✅ Encryption initialized successfully');
+        } catch (error) {
+            console.error('❌ Encryption initialization failed:', error);
+            throw new Error('Failed to initialize encryption');
+        }
+    }
+
+    /**
+     * Derive encryption key material from user ID
+     */
+    async deriveKeyMaterial(userSub) {
+        // Use a combination of user ID and app-specific secret
+        const appSecret = 'NotesApp2025_EncryptionSecret_v1';
+        const combined = userSub + '|' + appSecret;
+        
+        // Create key material using PBKDF2
+        const encoder = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            'raw',
+            encoder.encode(combined),
+            'PBKDF2',
+            false,
+            ['deriveBits']
+        );
+        
+        // Derive 256-bit key using PBKDF2 with 100,000 iterations
+        const salt = encoder.encode('NotesAppSalt2025');
+        const derivedKey = await window.crypto.subtle.deriveBits(
+            {
+                name: 'PBKDF2',
+                salt: salt,
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            256
+        );
+        
+        return derivedKey;
+    }
+
+    /**
+     * Encrypt a string value
+     */
+    async encrypt(plaintext) {
+        if (!this.isInitialized) {
+            throw new Error('Encryption not initialized');
+        }
+        
+        if (!plaintext || typeof plaintext !== 'string') {
+            return plaintext; // Return as-is for empty/invalid values
+        }
+        
+        try {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(plaintext);
+            
+            // Generate random IV for each encryption
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv: iv },
+                this.key,
+                data
+            );
+            
+            // Return encrypted data with IV and authentication tag
+            return {
+                encrypted: this.arrayBufferToBase64(encrypted),
+                iv: this.arrayBufferToBase64(iv),
+                version: 1 // For future encryption version compatibility
+            };
+        } catch (error) {
+            console.error('❌ Encryption failed:', error);
+            throw new Error('Failed to encrypt data');
+        }
+    }
+
+    /**
+     * Decrypt an encrypted value
+     */
+    async decrypt(encryptedData) {
+        if (!this.isInitialized) {
+            throw new Error('Encryption not initialized');
+        }
+        
+        if (!encryptedData || typeof encryptedData !== 'object' || !encryptedData.encrypted) {
+            return encryptedData; // Return as-is for non-encrypted data
+        }
+        
+        try {
+            const encrypted = this.base64ToArrayBuffer(encryptedData.encrypted);
+            const iv = this.base64ToArrayBuffer(encryptedData.iv);
+            
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: iv },
+                this.key,
+                encrypted
+            );
+            
+            const decoder = new TextDecoder();
+            return decoder.decode(decrypted);
+        } catch (error) {
+            console.error('❌ Decryption failed:', error);
+            throw new Error('Failed to decrypt data');
+        }
+    }
+
+    /**
+     * Check if data is encrypted
+     */
+    isEncrypted(data) {
+        return data && typeof data === 'object' && data.encrypted && data.iv;
+    }
+
+    /**
+     * Convert ArrayBuffer to Base64
+     */
+    arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    /**
+     * Convert Base64 to ArrayBuffer
+     */
+    base64ToArrayBuffer(base64) {
+        const binary = window.atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    /**
+     * Clear encryption key from memory
+     */
+    clear() {
+        this.key = null;
+        this.isInitialized = false;
+        console.log('🔐 Encryption key cleared from memory');
+    }
+}
+
+/**
+ * PH Timezone Utilities - Handles Philippine timezone operations
+ */
+class PHTimezoneUtils {
+    static getPHTime() {
+        return new Date().toLocaleString('en-US', {
+            timeZone: 'Asia/Manila',
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+    }
+    
+    static getPHTimeShort() {
+        return new Date().toLocaleString('en-US', {
+            timeZone: 'Asia/Manila',
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    }
+    
+    static convertToPHTime(utcDate) {
+        return new Date(utcDate).toLocaleString('en-US', {
+            timeZone: 'Asia/Manila'
+        });
+    }
+    
+    static isPastDue(dueDateString) {
+        if (!dueDateString) return false;
+        
+        const dueDate = new Date(dueDateString);
+        const phNow = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+        
+        return dueDate < phNow;
+    }
+    
+    static formatDueDateForInput(utcString) {
+        if (!utcString) return '';
+        
+        // Convert UTC to PH time for input field
+        const date = new Date(utcString);
+        const phDate = new Date(date.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+        
+        return phDate.toISOString().slice(0, 16); // Format for datetime-local input
+    }
+}
+
 class NotesApp {
     constructor() {
         // Data storage
@@ -17,6 +250,15 @@ class NotesApp {
         this.currentUser = null;
         this.authToken = null;
         this.isAuthenticated = false;
+        
+        // Encryption manager
+        this.encryptionManager = new EncryptionManager();
+        
+        // ADDED: PH time update timer
+        this.phTimeInterval = null;
+        
+        // ADDED: Overdue checking timer
+        this.overdueInterval = null;
         
         // DOM elements
         this.elements = {};
@@ -33,6 +275,9 @@ class NotesApp {
         
         this.initializeDOM();
         this.setupEventListeners();
+        
+        // ADDED: Start PH time display
+        this.startPHTimeDisplay();
         
         // Check authentication status first
         await this.checkAuthStatus();
@@ -66,7 +311,11 @@ class NotesApp {
             modalOverlay: document.getElementById('modal-overlay'),
             modalMessage: document.getElementById('modal-message'),
             modalConfirm: document.getElementById('modal-confirm'),
-            modalCancel: document.getElementById('modal-cancel')
+            modalCancel: document.getElementById('modal-cancel'),
+            
+            // ADDED: PH time display elements
+            phTimeDisplay: document.getElementById('ph-time-display'),
+            phTimeValue: document.getElementById('ph-time-value')
         };
 
         // Validate critical elements
@@ -128,8 +377,16 @@ class NotesApp {
                 await this.verifyAuthToken();
                 
                 this.isAuthenticated = true;
+                
+                // Initialize encryption with user's Google ID
+                await this.encryptionManager.initialize(this.currentUser.sub);
+                
                 this.showApp();
                 await this.loadNotesFromCloud();
+                
+                // ADDED: Start overdue checking after notes are loaded
+                this.startOverdueChecking();
+                
                 console.log('✅ Authentication verified');
             } catch (error) {
                 console.log('⚠️ Stored token is invalid, showing login');
@@ -251,6 +508,21 @@ class NotesApp {
         this.isAuthenticated = false;
         this.notes = [];
         
+        // ADDED: Clear encryption key from memory on logout
+        this.encryptionManager.clear();
+        
+        // ADDED: Clear PH time display timer
+        if (this.phTimeInterval) {
+            clearInterval(this.phTimeInterval);
+            this.phTimeInterval = null;
+        }
+        
+        // ADDED: Clear overdue checking timer
+        if (this.overdueInterval) {
+            clearInterval(this.overdueInterval);
+            this.overdueInterval = null;
+        }
+        
         localStorage.removeItem('authToken');
         localStorage.removeItem('currentUser');
         
@@ -259,6 +531,100 @@ class NotesApp {
         }
         
         this.renderNotes();
+    }
+
+    /**
+     * ADDED: Start PH time display with real-time updates
+     */
+    startPHTimeDisplay() {
+        // Update time immediately
+        this.updatePHTimeDisplay();
+        
+        // Update every second
+        this.phTimeInterval = setInterval(() => {
+            this.updatePHTimeDisplay();
+        }, 1000);
+        
+        console.log('🕒 PH time display started');
+    }
+
+    /**
+     * ADDED: Update PH time display
+     */
+    updatePHTimeDisplay() {
+        if (this.elements.phTimeValue) {
+            this.elements.phTimeValue.textContent = PHTimezoneUtils.getPHTime();
+        }
+    }
+
+    /**
+     * ADDED: Update overdue indicator for a note card
+     */
+    updateOverdueIndicator(noteCard, isOverdue) {
+        const indicator = noteCard.querySelector('.note-overdue-indicator');
+        if (indicator) {
+            if (isOverdue) {
+                indicator.classList.remove('hidden');
+            } else {
+                indicator.classList.add('hidden');
+            }
+        }
+    }
+
+    /**
+     * ADDED: Check all notes for overdue status and update automatically
+     */
+    async checkOverdueNotes() {
+        if (!this.isAuthenticated || this.notes.length === 0) return;
+        
+        let hasChanges = false;
+        const now = new Date().toISOString();
+        
+        for (const note of this.notes) {
+            if (!note.done && note.dueDate) {
+                const wasOverdue = note.isOverdue;
+                const isNowOverdue = PHTimezoneUtils.isPastDue(note.dueDate);
+                
+                if (wasOverdue !== isNowOverdue) {
+                    note.isOverdue = isNowOverdue;
+                    note.overdueCheckedAt = now;
+                    hasChanges = true;
+                    
+                    // Update UI immediately
+                    const noteCard = document.querySelector(`[data-note-id="${note.id}"]`);
+                    if (noteCard) {
+                        this.updateOverdueIndicator(noteCard, isNowOverdue);
+                    }
+                    
+                    // Save to cloud
+                    try {
+                        await this.sendToCloud('update', note);
+                        console.log(`📅 Note "${note.title}" overdue status updated: ${isNowOverdue}`);
+                    } catch (error) {
+                        console.error('❌ Failed to update overdue status:', error);
+                    }
+                }
+            }
+        }
+        
+        if (hasChanges) {
+            console.log('📅 Overdue check completed with changes');
+        }
+    }
+
+    /**
+     * ADDED: Start automatic overdue checking
+     */
+    startOverdueChecking() {
+        // Check immediately
+        this.checkOverdueNotes();
+        
+        // Check every 5 minutes
+        this.overdueInterval = setInterval(() => {
+            this.checkOverdueNotes();
+        }, 5 * 60 * 1000);
+        
+        console.log('📅 Automatic overdue checking started');
     }
 
     /**
@@ -362,6 +728,25 @@ class NotesApp {
             note.system = e.target.value;
             this.addSystemSuggestion(e.target.value);
             changed = true;
+        } else if (e.target.classList.contains('note-due-date')) {
+            // ADDED: Handle due date input
+            if (e.target.value) {
+                // Convert PH local time input to UTC for storage
+                const localDate = new Date(e.target.value);
+                note.dueDate = localDate.toISOString();
+                
+                // Check if overdue immediately
+                note.isOverdue = PHTimezoneUtils.isPastDue(note.dueDate);
+                note.overdueCheckedAt = new Date().toISOString();
+                
+                this.updateOverdueIndicator(noteCard, note.isOverdue);
+            } else {
+                note.dueDate = '';
+                note.isOverdue = false;
+                note.overdueCheckedAt = '';
+                this.updateOverdueIndicator(noteCard, false);
+            }
+            changed = true;
         }
 
         if (changed) {
@@ -433,7 +818,14 @@ class NotesApp {
             }
 
             const notes = await response.json();
-            this.notes = this.sortNotes(notes);
+            
+            // ADDED: Decrypt notes data after loading from cloud
+            console.log('🔓 Decrypting loaded notes...');
+            const decryptedNotes = await Promise.all(
+                notes.map(note => this.decryptNoteData(note))
+            );
+            
+            this.notes = this.sortNotes(decryptedNotes);
             
             // Extract system suggestions
             this.systemSuggestions.clear();
@@ -504,7 +896,17 @@ class NotesApp {
             done: false,
             dateDone: '',
             dateUndone: '',
-            priority: 0
+            priority: 0,
+            // Existing fields from your sheets
+            userId: this.currentUser?.sub || '',
+            userEmail: this.currentUser?.email || '',
+            createdBy: this.currentUser?.name || this.currentUser?.email || '',
+            lastModified: new Date().toISOString(),
+            isShared: false,
+            // ADDED: New due date fields
+            dueDate: '',
+            isOverdue: false,
+            overdueCheckedAt: ''
         };
 
         // Add to local array
@@ -1040,6 +1442,15 @@ class NotesApp {
             systemElement.value = note.system || '';
         }
         
+        // ADDED: Set due date
+        const dueDateElement = noteCard.querySelector('.note-due-date');
+        if (dueDateElement) {
+            dueDateElement.value = PHTimezoneUtils.formatDueDateForInput(note.dueDate);
+        }
+        
+        // ADDED: Set overdue indicator
+        this.updateOverdueIndicator(noteCard, note.isOverdue || false);
+        
         return noteElement;
     }
 
@@ -1052,16 +1463,22 @@ class NotesApp {
  */
 async sendToCloud(action, data) {
     console.log(`☁️ Sending ${action} to cloud...`);
-    console.log('📤 Data being sent:', data);
+    // UPDATED: Modified log message to indicate encryption will happen
+    console.log('📤 Data being sent (before encryption):', data);
     
     try {
+        // ADDED: Encrypt sensitive note data before sending to cloud
+        const encryptedData = await this.encryptNoteData(data);
+        console.log('🔐 Data encrypted for cloud storage');
+        
         const response = await fetch('/api/update-note', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.authToken}`
             },
-            body: JSON.stringify({ action, note: data })
+            // UPDATED: Send encrypted data instead of raw data
+            body: JSON.stringify({ action, note: encryptedData })
         });
         
         console.log('📊 Response status:', response.status);
@@ -1107,6 +1524,63 @@ async sendToCloud(action, data) {
   /**
      * END Send data to cloud with authentication
      */
+
+    // ADDED: Encrypt note data before sending to cloud
+    async encryptNoteData(note) {
+        if (!this.encryptionManager.isInitialized) {
+            console.warn('⚠️ Encryption not initialized, sending data unencrypted');
+            return note;
+        }
+
+        try {
+            const encryptedNote = { ...note };
+            
+            // Encrypt sensitive fields only
+            if (note.title) {
+                encryptedNote.title = await this.encryptionManager.encrypt(note.title);
+            }
+            if (note.description) {
+                encryptedNote.description = await this.encryptionManager.encrypt(note.description);
+            }
+            if (note.comments) {
+                encryptedNote.comments = await this.encryptionManager.encrypt(note.comments);
+            }
+            
+            return encryptedNote;
+        } catch (error) {
+            console.error('❌ Failed to encrypt note data:', error);
+            throw new Error('Encryption failed');
+        }
+    }
+
+    // ADDED: Decrypt note data after loading from cloud
+    async decryptNoteData(note) {
+        if (!this.encryptionManager.isInitialized) {
+            console.warn('⚠️ Encryption not initialized, returning data as-is');
+            return note;
+        }
+
+        try {
+            const decryptedNote = { ...note };
+            
+            // Decrypt sensitive fields if they are encrypted
+            if (this.encryptionManager.isEncrypted(note.title)) {
+                decryptedNote.title = await this.encryptionManager.decrypt(note.title);
+            }
+            if (this.encryptionManager.isEncrypted(note.description)) {
+                decryptedNote.description = await this.encryptionManager.decrypt(note.description);
+            }
+            if (this.encryptionManager.isEncrypted(note.comments)) {
+                decryptedNote.comments = await this.encryptionManager.decrypt(note.comments);
+            }
+            
+            return decryptedNote;
+        } catch (error) {
+            console.error('❌ Failed to decrypt note data:', error);
+            // Return original data if decryption fails (backward compatibility)
+            return note;
+        }
+    }
 
 
     /**
@@ -1221,10 +1695,16 @@ window.handleGoogleSignIn = async function(response) {
         
         console.log('✅ Authentication successful');
         
+        // Initialize encryption with user's Google ID
+        await window.notesApp.encryptionManager.initialize(authData.user.sub);
+        
         // Show app and load notes
         window.notesApp.hideAuthLoading();
         window.notesApp.showApp();
         await window.notesApp.loadNotesFromCloud();
+        
+        // ADDED: Start overdue checking after notes are loaded
+        window.notesApp.startOverdueChecking();
         
     } catch (error) {
         console.error('❌ Authentication error:', error);
@@ -1243,5 +1723,10 @@ window.addEventListener('beforeunload', (e) => {
     if (window.notesApp?.pendingChanges.size > 0) {
         e.preventDefault();
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+    }
+    
+    // ADDED: Clear encryption key from memory on page unload for security
+    if (window.notesApp?.encryptionManager) {
+        window.notesApp.encryptionManager.clear();
     }
 });
