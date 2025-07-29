@@ -597,15 +597,30 @@ function rowToNote(row, headers) {
 }
 
 /**
- * ADDED: Parse encrypted data from JSON strings
+ * ADDED: Parse encrypted data from JSON strings or malformed format
  */
 function tryParseEncrypted(value) {
   if (typeof value === 'string' && value.startsWith('{') && value.includes('encrypted')) {
     try {
+      // First try normal JSON parsing
       return JSON.parse(value);
     } catch (e) {
-      console.warn('⚠️ Failed to parse encrypted data, returning as plain text:', e);
-      return value; // Return original if not valid JSON
+      console.warn('⚠️ Standard JSON parsing failed, trying to fix malformed format:', value);
+      
+      // Try to fix the malformed format {key=value} -> {"key":"value"}
+      try {
+        let fixedValue = value;
+        // Replace = with : and add quotes around keys and values
+        fixedValue = fixedValue.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^,}]+)/g, '"$1":"$2"');
+        // Fix version number (remove quotes from numbers)
+        fixedValue = fixedValue.replace(/"version"\s*:\s*"(\d+(?:\.\d+)?)"/, '"version":$1');
+        
+        console.log('🔧 Attempting to parse fixed format:', fixedValue);
+        return JSON.parse(fixedValue);
+      } catch (e2) {
+        console.warn('⚠️ Failed to parse malformed encrypted data, returning as plain text:', e2);
+        return value; // Return original if all parsing fails
+      }
     }
   }
   return value;
