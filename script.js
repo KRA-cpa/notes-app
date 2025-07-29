@@ -112,20 +112,30 @@ class EncryptionManager {
     }
 
     /**
-     * Decrypt an encrypted value
+     * Decrypt an encrypted value (handles both proper objects and malformed strings)
      */
     async decrypt(encryptedData) {
         if (!this.isInitialized) {
             throw new Error('Encryption not initialized');
         }
         
-        if (!encryptedData || typeof encryptedData !== 'object' || !encryptedData.encrypted) {
-            return encryptedData; // Return as-is for non-encrypted data
+        // If not encrypted, return as-is
+        if (!this.isEncrypted(encryptedData)) {
+            return encryptedData;
+        }
+        
+        let parsedData = encryptedData;
+        
+        // If it's a malformed string, parse it first
+        if (typeof encryptedData === 'string') {
+            console.log('🔧 Parsing malformed encrypted string:', encryptedData);
+            parsedData = this.parseMalformedEncryptedString(encryptedData);
+            console.log('✅ Parsed to object:', parsedData);
         }
         
         try {
-            const encrypted = this.base64ToArrayBuffer(encryptedData.encrypted);
-            const iv = this.base64ToArrayBuffer(encryptedData.iv);
+            const encrypted = this.base64ToArrayBuffer(parsedData.encrypted);
+            const iv = this.base64ToArrayBuffer(parsedData.iv);
             
             const decrypted = await window.crypto.subtle.decrypt(
                 { name: 'AES-GCM', iv: iv },
@@ -134,18 +144,70 @@ class EncryptionManager {
             );
             
             const decoder = new TextDecoder();
-            return decoder.decode(decrypted);
+            const result = decoder.decode(decrypted);
+            console.log('✅ Successfully decrypted data');
+            return result;
         } catch (error) {
             console.error('❌ Decryption failed:', error);
+            console.error('❌ Input data:', parsedData);
             throw new Error('Failed to decrypt data');
         }
     }
 
     /**
-     * Check if data is encrypted
+     * Parse malformed encrypted strings from AppScript
+     * Converts {version=1.0, iv=abc123, encrypted=xyz789} to proper JSON object
+     */
+    parseMalformedEncryptedString(malformedString) {
+        try {
+            // First try normal JSON parsing
+            return JSON.parse(malformedString);
+        } catch (e) {
+            console.log('🔧 Attempting to fix malformed encrypted string format');
+            
+            try {
+                let fixedString = malformedString;
+                
+                // Handle: {version=1.0, iv=abc123, encrypted=xyz789}
+                fixedString = fixedString.replace(/\{([^}]+)\}/, (match, content) => {
+                    // Split by comma and process each key=value pair
+                    const pairs = content.split(',').map(pair => {
+                        const [key, value] = pair.split('=').map(s => s.trim());
+                        // Check if value is a number (for version)
+                        if (key === 'version' && /^\d+(\.\d+)?$/.test(value)) {
+                            return `"${key}":${value}`;
+                        } else {
+                            return `"${key}":"${value}"`;
+                        }
+                    });
+                    return `{${pairs.join(',')}}`;
+                });
+                
+                console.log('🔧 Fixed malformed string to:', fixedString);
+                return JSON.parse(fixedString);
+            } catch (e2) {
+                console.error('❌ Failed to fix malformed encrypted string:', e2);
+                throw new Error('Cannot parse malformed encrypted data');
+            }
+        }
+    }
+
+    /**
+     * Check if data is encrypted (handles both proper objects and malformed strings)
      */
     isEncrypted(data) {
-        return data && typeof data === 'object' && data.encrypted && data.iv;
+        // Handle properly parsed encrypted objects
+        if (data && typeof data === 'object' && data.encrypted && data.iv) {
+            return true;
+        }
+        
+        // Handle malformed encrypted strings from AppScript
+        if (typeof data === 'string' && data.startsWith('{') && data.includes('encrypted') && data.includes('iv')) {
+            console.log('🔍 Detected malformed encrypted string:', data);
+            return true;
+        }
+        
+        return false;
     }
 
     /**
@@ -1567,6 +1629,7 @@ async sendToCloud(action, data) {
         console.log('🔍 Note title type/value:', typeof note.title, note.title);
         console.log('🔍 Note description type/value:', typeof note.description, note.description);
         console.log('🔍 Note comments type/value:', typeof note.comments, note.comments);
+        console.log('🔍 Encryption manager initialized:', this.encryptionManager.isInitialized);
         
         if (!this.encryptionManager.isInitialized) {
             console.warn('⚠️ Encryption not initialized, returning data as-is');
