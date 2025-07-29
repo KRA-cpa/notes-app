@@ -376,6 +376,12 @@ function addNote(note, user) {
     console.log('🔍 Note title JSON:', JSON.stringify(note.title));
   }
   
+  // ADDED: Debug logging for due date fields
+  console.log('📅 Due date fields debug:');
+  console.log('📅 note.dueDate:', note.dueDate);
+  console.log('📅 note.isOverdue:', note.isOverdue);
+  console.log('📅 note.overdueCheckedAt:', note.overdueCheckedAt);
+  
   // Log the successful operation
   const titleForLog = typeof note.title === 'object' ? '[Encrypted]' : note.title;
   console.log(`➕ Added note: ${titleForLog} for user: ${user.userEmail}`);
@@ -414,6 +420,12 @@ function updateNote(note, user) {
       note.lastModified = new Date().toISOString();
       note.userId = user.userId; // Ensure user context is preserved
       note.userEmail = user.userEmail;
+      
+      // ADDED: Debug logging for due date fields in update
+      console.log('📅 UPDATE - Due date fields debug:');
+      console.log('📅 note.dueDate:', note.dueDate);
+      console.log('📅 note.isOverdue:', note.isOverdue);
+      console.log('📅 note.overdueCheckedAt:', note.overdueCheckedAt);
       
       const updatedRow = noteToRow(note);
       
