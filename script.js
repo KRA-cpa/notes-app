@@ -852,9 +852,14 @@ class NotesApp {
                 const phToday = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
                 phToday.setHours(0, 0, 0, 0);
                 
-                if (selectedDate < phToday) {
-                    // Show red emoji warning for past date
-                    this.updateStatus('🔴 Due date is in the past', 'warning');
+                // Show/hide past date warning below the field
+                const pastDateWarning = noteCard.querySelector('.note-past-date-warning');
+                if (pastDateWarning) {
+                    if (selectedDate < phToday) {
+                        pastDateWarning.classList.remove('hidden');
+                    } else {
+                        pastDateWarning.classList.add('hidden');
+                    }
                 }
                 
                 // Check if overdue immediately
