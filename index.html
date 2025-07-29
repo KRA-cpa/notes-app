@@ -137,8 +137,14 @@
 
                 <!-- Title and Metadata -->
                 <div class="flex-1 min-w-0">
-                    <div class="note-title text-lg font-medium text-gray-900 dark:text-white bg-transparent border-none outline-none focus:bg-gray-50 dark:focus:bg-gray-700 rounded px-2 py-1 transition-colors" contenteditable="true">
-                        New Note
+                    <div class="flex items-start gap-2">
+                        <div class="note-title flex-1 text-lg font-medium text-gray-900 dark:text-white bg-transparent border-none outline-none focus:bg-gray-50 dark:focus:bg-gray-700 rounded px-2 py-1 transition-colors" contenteditable="true">
+                            New Note
+                        </div>
+                        <!-- Overdue indicator beside title -->
+                        <div class="note-overdue-indicator hidden text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-full whitespace-nowrap">
+                            🚨 Overdue
+                        </div>
                     </div>
                     <div class="note-metadata text-xs text-gray-500 dark:text-gray-400 mt-1 px-2">
                         <span class="note-order hidden"></span>
@@ -212,9 +218,6 @@
                         Due Date <span class="text-xs text-gray-500 dark:text-gray-400">(PH Time)</span>
                     </label>
                     <input type="date" class="note-due-date w-full p-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all [&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer" placeholder="Select due date">
-                    <div class="note-overdue-indicator hidden mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
-                        🚨 Overdue
-                    </div>
                 </div>
 
                 <!-- Comments -->

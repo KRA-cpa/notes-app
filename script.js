@@ -847,6 +847,16 @@ class NotesApp {
                 const localDate = new Date(e.target.value + 'T00:00:00');
                 note.dueDate = localDate.toISOString();
                 
+                // Check if selected date is in the past (compared to current PH date)
+                const selectedDate = new Date(e.target.value);
+                const phToday = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+                phToday.setHours(0, 0, 0, 0);
+                
+                if (selectedDate < phToday) {
+                    // Show red emoji warning for past date
+                    this.updateStatus('🔴 Due date is in the past', 'warning');
+                }
+                
                 // Check if overdue immediately
                 note.isOverdue = PHTimezoneUtils.isPastDue(note.dueDate);
                 note.overdueCheckedAt = new Date().toISOString();
@@ -1563,7 +1573,16 @@ class NotesApp {
         // ADDED: Set due date
         const dueDateElement = noteCard.querySelector('.note-due-date');
         if (dueDateElement) {
-            dueDateElement.value = PHTimezoneUtils.formatDueDateForInput(note.dueDate);
+            if (note.dueDate) {
+                // Use existing due date if note has one
+                dueDateElement.value = PHTimezoneUtils.formatDueDateForInput(note.dueDate);
+            } else {
+                // Propose tomorrow's date for notes without due date
+                const tomorrow = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowString = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD format
+                dueDateElement.value = tomorrowString;
+            }
         }
         
         // ADDED: Set overdue indicator
