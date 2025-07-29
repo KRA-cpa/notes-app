@@ -872,6 +872,12 @@ class NotesApp {
                 note.isOverdue = false;
                 note.overdueCheckedAt = '';
                 this.updateOverdueIndicator(noteCard, false);
+                
+                // Hide past date warning when field is cleared
+                const pastDateWarning = noteCard.querySelector('.note-past-date-warning');
+                if (pastDateWarning) {
+                    pastDateWarning.classList.add('hidden');
+                }
             }
             changed = true;
         }
