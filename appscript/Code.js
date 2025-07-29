@@ -684,7 +684,13 @@ function tryParseEncrypted(value) {
  * UPDATED: Added support for encrypted data and due date fields
  */
 function noteToRow(note) {
-  return [
+  // ADDED: Debug logging for due date fields
+  console.log('🔍 noteToRow - Input note due date fields:');
+  console.log('   - note.dueDate:', note.dueDate);
+  console.log('   - note.isOverdue:', note.isOverdue);
+  console.log('   - note.overdueCheckedAt:', note.overdueCheckedAt);
+  
+  const row = [
     note.id || '',
     note.timestamp || '',
     // UPDATED: Handle encrypted fields - convert objects to JSON strings properly
@@ -707,6 +713,14 @@ function noteToRow(note) {
     note.isOverdue || false,
     note.overdueCheckedAt || ''
   ];
+  
+  // ADDED: Debug logging for output row due date fields
+  console.log('🔍 noteToRow - Output row due date fields:');
+  console.log('   - row[15] (should be dueDate):', row[15]);
+  console.log('   - row[16] (should be isOverdue):', row[16]);
+  console.log('   - row[17] (should be overdueCheckedAt):', row[17]);
+  
+  return row;
 }
 
 /**
@@ -929,4 +943,127 @@ function testScript() {
   }
   
   console.log('✅ Test completed');
+}
+
+/**
+ * Debug due date saving specifically
+ */
+function debugDueDateSaving() {
+  console.log('🔍 DEBUGGING DUE DATE SAVING...');
+  
+  // Test user context
+  const mockRequest = {
+    method: 'POST',
+    postData: {
+      contents: JSON.stringify({
+        'X-User-ID': 'test-user-123',
+        'X-User-Email': 'test@example.com',
+        'X-User-Name': 'Test User',
+        action: 'add',
+        note: { 
+          id: 'debug-due-date-' + Date.now(),
+          title: 'Debug Due Date Note',
+          description: 'Testing due date functionality',
+          tags: 'debug,due-date',
+          comments: 'Debug comments',
+          system: 'DebugSystem',
+          done: false,
+          priority: 1,
+          dueDate: '2025-07-30T00:00:00.000Z',
+          isOverdue: false,
+          overdueCheckedAt: '2025-07-29T15:00:00.000Z'
+        }
+      })
+    }
+  };
+  
+  currentRequest = mockRequest;
+  const user = getUserContext();
+  console.log('👤 Debug User context:', user);
+  
+  // Parse the request data
+  const data = JSON.parse(currentRequest.postData.contents);
+  const note = data.note;
+  
+  console.log('📝 Debug note object:', note);
+  console.log('📅 Due date fields before processing:');
+  console.log('   - dueDate:', note.dueDate);
+  console.log('   - isOverdue:', note.isOverdue);
+  console.log('   - overdueCheckedAt:', note.overdueCheckedAt);
+  
+  // Test noteToRow conversion
+  console.log('🔄 Testing noteToRow conversion...');
+  const row = noteToRow(note);
+  console.log('📊 Converted row:', row);
+  console.log('📊 Row length:', row.length);
+  console.log('📅 Due date fields in row:');
+  console.log('   - dueDate (index 15):', row[15]);
+  console.log('   - isOverdue (index 16):', row[16]);
+  console.log('   - overdueCheckedAt (index 17):', row[17]);
+  
+  // Try adding the note
+  try {
+    console.log('➕ Attempting to add debug note...');
+    const result = addNote(note, user);
+    console.log('✅ addNote result:', result);
+  } catch (error) {
+    console.error('❌ addNote failed:', error);
+  }
+  
+  console.log('🔍 Debug completed');
+}
+
+/**
+ * Check current sheet structure and headers
+ */
+function checkSheetStructure() {
+  console.log('📋 CHECKING SHEET STRUCTURE...');
+  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Notes');
+  
+  if (!sheet) {
+    console.error('❌ Notes sheet not found');
+    return;
+  }
+  
+  // Get current headers
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  
+  console.log('📋 Current sheet headers:', headers);
+  console.log('📋 Total columns:', headers.length);
+  
+  // Check for due date columns specifically
+  const dueDateCols = ['dueDate', 'isOverdue', 'overdueCheckedAt'];
+  dueDateCols.forEach((col, index) => {
+    const colIndex = headers.indexOf(col);
+    console.log(`📅 ${col} column: ${colIndex >= 0 ? `found at index ${colIndex}` : 'NOT FOUND'}`);
+  });
+  
+  // Check if we have any data
+  const lastRow = sheet.getLastRow();
+  console.log('📊 Total rows (including header):', lastRow);
+  
+  if (lastRow > 1) {
+    console.log('📄 Sample data from row 2:');
+    const sampleRow = sheet.getRange(2, 1, 1, lastColumn).getValues()[0];
+    console.log('   Data:', sampleRow);
+    
+    // Show due date fields specifically if they exist
+    const dueDateIndex = headers.indexOf('dueDate');
+    const isOverdueIndex = headers.indexOf('isOverdue');
+    const overdueCheckedAtIndex = headers.indexOf('overdueCheckedAt');
+    
+    if (dueDateIndex >= 0) {
+      console.log(`📅 Sample dueDate value: ${sampleRow[dueDateIndex]}`);
+    }
+    if (isOverdueIndex >= 0) {
+      console.log(`📅 Sample isOverdue value: ${sampleRow[isOverdueIndex]}`);
+    }
+    if (overdueCheckedAtIndex >= 0) {
+      console.log(`📅 Sample overdueCheckedAt value: ${sampleRow[overdueCheckedAtIndex]}`);
+    }
+  }
+  
+  console.log('📋 Sheet structure check completed');
 }
