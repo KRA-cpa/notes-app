@@ -228,13 +228,16 @@ class PHTimezoneUtils {
     }
     
     static formatDueDateForInput(utcString) {
-        if (!utcString) return '';
+        if (!utcString) {
+            // If no due date provided, default to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return tomorrow.toISOString().slice(0, 10);
+        }
         
-        // Convert UTC to PH time for date input field
+        // Convert UTC to local date for date input field
         const date = new Date(utcString);
-        const phDate = new Date(date.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
-        
-        return phDate.toISOString().slice(0, 10); // Format for date input (YYYY-MM-DD)
+        return date.toISOString().slice(0, 10); // Format for date input (YYYY-MM-DD)
     }
 }
 
@@ -903,8 +906,13 @@ class NotesApp {
             createdBy: this.currentUser?.name || this.currentUser?.email || '',
             lastModified: new Date().toISOString(),
             isShared: false,
-            // ADDED: New due date fields
-            dueDate: '',
+            // ADDED: New due date fields with default tomorrow
+            dueDate: (() => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0);
+                return tomorrow.toISOString();
+            })(),
             isOverdue: false,
             overdueCheckedAt: ''
         };

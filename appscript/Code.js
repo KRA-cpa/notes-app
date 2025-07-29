@@ -368,6 +368,13 @@ function addNote(note, user) {
   // Register user in Users sheet if this is their first note
   registerUser(user);
   
+  // ADDED: Debug logging for encrypted data handling
+  console.log('🔍 Note title type:', typeof note.title);
+  console.log('🔍 Note title value:', note.title);
+  if (typeof note.title === 'object') {
+    console.log('🔍 Note title JSON:', JSON.stringify(note.title));
+  }
+  
   // Log the successful operation
   const titleForLog = typeof note.title === 'object' ? '[Encrypted]' : note.title;
   console.log(`➕ Added note: ${titleForLog} for user: ${user.userEmail}`);
@@ -612,11 +619,11 @@ function noteToRow(note) {
   return [
     note.id || '',
     note.timestamp || '',
-    // UPDATED: Handle encrypted fields - convert objects to JSON strings
-    typeof note.title === 'object' ? JSON.stringify(note.title) : (note.title || ''),
-    typeof note.description === 'object' ? JSON.stringify(note.description) : (note.description || ''),
+    // UPDATED: Handle encrypted fields - convert objects to JSON strings properly
+    typeof note.title === 'object' && note.title !== null ? JSON.stringify(note.title) : (note.title || ''),
+    typeof note.description === 'object' && note.description !== null ? JSON.stringify(note.description) : (note.description || ''),
     note.tags || '',
-    typeof note.comments === 'object' ? JSON.stringify(note.comments) : (note.comments || ''),
+    typeof note.comments === 'object' && note.comments !== null ? JSON.stringify(note.comments) : (note.comments || ''),
     note.system || '',
     note.done || false,
     note.dateDone || '',
