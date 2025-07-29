@@ -1,25 +1,55 @@
 /**
- * Notes App - Google Apps Script with User Authentication
- * Complete rewrite to support multi-user functionality
- * FIXED: User context reading for POST requests
+ * Notes App - Google Apps Script Backend
+ * 
+ * Features:
+ * - Multi-user authentication with Google accounts
+ * - Client-side encryption support for sensitive data
+ * - Due date functionality with overdue tracking
+ * - User isolation (users only see their own notes)
+ * - CRUD operations for notes management
+ * 
+ * Data Flow:
+ * 1. Frontend sends requests with user context (userId, email, name)
+ * 2. Backend validates user and performs operations
+ * 3. Encrypted data is stored as JSON strings in sheets
+ * 4. Plain text data (tags, system, dates) stored for filtering
+ * 
+ * Security:
+ * - User context required for all operations
+ * - Notes are isolated by userId
+ * - Sensitive fields encrypted client-side
+ * - No plain text passwords or tokens stored
  */
 
-// Global variable to store current request context
+// Global variable to store current request context for user extraction
 let currentRequest = null;
 
 /**
- * Main GET handler - Returns user-specific notes
+ * Main GET handler - Load user-specific notes from Google Sheets
+ * 
+ * Expected Query Parameters:
+ * - X-User-ID: Google user's unique identifier
+ * - X-User-Email: User's email address
+ * - X-User-Name: User's display name
+ * 
+ * Returns: JSON array of notes belonging to the authenticated user
+ * Notes include both encrypted fields (title, description, comments) and
+ * plain text fields (tags, system, dates) for filtering/sorting
+ * 
+ * @param {Object} e - Google Apps Script event object containing request data
+ * @returns {ContentService.TextOutput} JSON response with user's notes
  */
 function doGet(e) {
-  currentRequest = e; // Store request for header access
-  currentRequest.method = 'GET'; // Add method for context
+  // Store request globally for user context extraction
+  currentRequest = e;
+  currentRequest.method = 'GET';
   
   try {
+    // Extract and validate user authentication context
     const user = getUserContext();
-    
     console.log('🔍 GET request user context:', user);
     
-    // Verify user is authenticated
+    // Security check: Ensure user is properly authenticated
     if (!user.userId) {
       console.log('❌ No userId found in GET request');
       return createErrorResponse("Unauthorized - User authentication required", 401);
@@ -27,11 +57,13 @@ function doGet(e) {
 
     console.log(`📥 Loading notes for user: ${user.userEmail}`);
     
-    // Get user-specific notes
+    // Fetch user-specific notes from Google Sheets
+    // This function filters notes by userId to ensure data isolation
     const userNotes = getUserNotes(user.userId);
     
     console.log(`✅ Returning ${userNotes.length} notes for user: ${user.userEmail}`);
     
+    // Return notes as JSON response
     return ContentService.createTextOutput(JSON.stringify(userNotes))
       .setMimeType(ContentService.MimeType.JSON);
       
@@ -42,26 +74,52 @@ function doGet(e) {
 }
 
 /**
- * Main POST handler - Handles note operations with user verification
+ * Main POST handler - Process note CRUD operations with user verification
+ * 
+ * Expected POST Body:
+ * {
+ *   "action": "add|update|delete|test",
+ *   "note": { note object with encrypted/plain fields },
+ *   "X-User-ID": "user's unique ID",
+ *   "X-User-Email": "user's email",
+ *   "X-User-Name": "user's display name"
+ * }
+ * 
+ * Supported Actions:
+ * - add: Create new note with user context and encryption support
+ * - update: Modify existing note (with ownership verification)
+ * - delete: Remove note (with ownership verification)
+ * - test: Connectivity and authentication test
+ * 
+ * Security Features:
+ * - User context validation on every request
+ * - Ownership verification for update/delete operations
+ * - Encrypted data handling (JSON stringification)
+ * - Error logging with user context
+ * 
+ * @param {Object} e - Google Apps Script event object with POST data
+ * @returns {ContentService.TextOutput} JSON response with operation result
  */
 function doPost(e) {
-  currentRequest = e; // Store request for header access
-  currentRequest.method = 'POST'; // Add method for context
+  // Store request globally for user context extraction
+  currentRequest = e;
+  currentRequest.method = 'POST';
   
   try {
     console.log('📨 POST request received');
     console.log('📄 POST data contents:', e.postData ? e.postData.contents : 'No postData');
     
+    // Extract user authentication context from request body
     const user = getUserContext();
-    
     console.log('🔍 POST request user context:', user);
     
-    // Verify user is authenticated
+    // Security check: Ensure user is properly authenticated
     if (!user.userId) {
       console.log('❌ No userId found in POST request');
       return createErrorResponse("Unauthorized - User authentication required", 401);
     }
 
+    // Parse request body to extract action and note data
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
     const note = data.note;
@@ -71,18 +129,22 @@ function doPost(e) {
     
     let result;
     
+    // Route request to appropriate handler based on action
     switch (action) {
       case 'add':
+        // Create new note with user context and encryption support
         result = addNote(note, user);
         break;
       case 'update':
+        // Update existing note with ownership verification
         result = updateNote(note, user);
         break;
       case 'delete':
+        // Delete note with ownership verification
         result = deleteNote(note, user);
         break;
       case 'test':
-        // Handle test action
+        // Test endpoint for connectivity and authentication
         result = { success: true, message: 'Test successful', user: user };
         break;
       default:
@@ -91,6 +153,7 @@ function doPost(e) {
     
     console.log(`✅ ${action} completed successfully for user: ${user.userEmail}`);
     
+    // Return success response as JSON
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
       
@@ -101,9 +164,26 @@ function doPost(e) {
 }
 
 /**
- * Extract user context from request - FIXED for POST requests
+ * Extract user authentication context from HTTP request
+ * 
+ * This function handles both GET and POST requests to extract user information
+ * required for authentication and authorization. The user context is embedded
+ * in different locations depending on the request method:
+ * 
+ * GET Requests: User context in query parameters
+ * - X-User-ID, X-User-Email, X-User-Name as URL parameters
+ * 
+ * POST Requests: User context in JSON body
+ * - X-User-ID, X-User-Email, X-User-Name as JSON properties
+ * 
+ * Security Note: This user context comes from the frontend JWT token
+ * which has already been verified by the Node.js backend before reaching
+ * this Apps Script endpoint.
+ * 
+ * @returns {Object} User context object with userEmail, userId, userName
  */
 function getUserContext() {
+  // Ensure we have a request to work with
   if (!currentRequest) {
     console.log('⚠️ No current request available');
     return { userEmail: '', userId: '', userName: '' };
@@ -113,20 +193,21 @@ function getUserContext() {
   let userId = '';
   let userName = '';
   
-  // For GET requests - check query parameters
+  // GET requests: Extract user context from query parameters
   if (currentRequest.method === 'GET' || !currentRequest.postData) {
     console.log('🔍 Reading user context from GET parameters');
     userEmail = currentRequest.parameter['X-User-Email'] || '';
     userId = currentRequest.parameter['X-User-ID'] || '';
     userName = currentRequest.parameter['X-User-Name'] || '';
   } 
-  // For POST requests - check JSON body
+  // POST requests: Extract user context from JSON request body
   else {
     console.log('🔍 Reading user context from POST body');
     try {
       const postData = JSON.parse(currentRequest.postData.contents || '{}');
       console.log('📄 Parsed POST data keys:', Object.keys(postData));
       
+      // Extract user context fields from POST body
       userEmail = postData['X-User-Email'] || '';
       userId = postData['X-User-ID'] || '';
       userName = postData['X-User-Name'] || '';
@@ -139,6 +220,7 @@ function getUserContext() {
   
   console.log('👤 Final user context:', { userEmail, userId, userName });
   
+  // Return standardized user context object
   return { 
     userEmail: userEmail, 
     userId: userId,
@@ -147,30 +229,53 @@ function getUserContext() {
 }
 
 /**
- * Get all notes for a specific user
+ * Retrieve all notes belonging to a specific user from Google Sheets
+ * 
+ * This function implements user data isolation by filtering notes based on userId.
+ * It also handles encrypted data parsing and provides backward compatibility
+ * for legacy installations without user columns.
+ * 
+ * Data Processing:
+ * 1. Reads all data from the Notes sheet
+ * 2. Filters rows by userId to ensure data isolation
+ * 3. Converts spreadsheet rows to note objects
+ * 4. Parses encrypted fields (title, description, comments) from JSON strings
+ * 5. Handles boolean and date field conversions
+ * 
+ * Security: Only returns notes that belong to the specified userId
+ * 
+ * @param {string} userId - Google user's unique identifier
+ * @returns {Array<Object>} Array of note objects belonging to the user
+ * @throws {Error} If Notes sheet is not found
  */
 function getUserNotes(userId) {
+  // Access the Notes sheet from the active spreadsheet
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Notes');
   
   if (!sheet) {
     throw new Error('Notes sheet not found');
   }
   
+  // Read all data from the sheet (including headers)
   const data = sheet.getDataRange().getValues();
   
+  // Handle empty sheet case
   if (data.length <= 1) {
     console.log('📋 No notes found - empty sheet');
     return []; // No data or just headers
   }
   
+  // Extract headers and find userId column for filtering
   const headers = data[0];
   const userIdIndex = headers.indexOf('userId');
   
-  // If userId column doesn't exist, this might be legacy data
+  // Handle legacy data without userId column (backward compatibility)
   if (userIdIndex === -1) {
     console.warn('⚠️ userId column not found - this might be legacy data');
+    console.warn('⚠️ Consider running migrateExistingNotes() to add user columns');
+    
     // For backward compatibility, return all notes if no userId column exists
-    // You might want to run migration first
+    // This should only happen during migration or in development
     const allNotes = [];
     for (let i = 1; i < data.length; i++) {
       const note = rowToNote(data[i], headers);
@@ -179,53 +284,86 @@ function getUserNotes(userId) {
     return allNotes;
   }
   
+  // Filter and process notes for the specific user
   const userNotes = [];
   
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     
-    // Filter by user - only return notes owned by this user
+    // Security check: Only include notes owned by this user
     if (row[userIdIndex] === userId) {
+      // Convert spreadsheet row to note object (handles encryption parsing)
       const note = rowToNote(row, headers);
       userNotes.push(note);
     }
   }
   
+  console.log(`📋 Found ${userNotes.length} notes for user: ${userId}`);
   return userNotes;
 }
 
 /**
- * Add a new note with user context
+ * Create a new note with user context and encryption support
+ * 
+ * This function handles the creation of new notes with proper user attribution,
+ * encryption support, and due date functionality. It automatically adds user
+ * context fields and ensures all required fields have appropriate defaults.
+ * 
+ * Encryption Handling:
+ * - Encrypted fields (title, description, comments) are stored as JSON strings
+ * - Plain text fields (tags, system, dates) stored directly for filtering
+ * - Automatic detection of encrypted vs plain text data
+ * 
+ * User Context:
+ * - Associates note with authenticated user
+ * - Adds creation and modification timestamps
+ * - Registers user in Users sheet if first time
+ * 
+ * @param {Object} note - Note data from frontend (may contain encrypted fields)
+ * @param {Object} user - Authenticated user context (userId, userEmail, userName)
+ * @returns {Object} Success response with operation status
+ * @throws {Error} If Notes sheet is not found
  */
 function addNote(note, user) {
+  // Access the Notes sheet for data storage
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Notes');
   
   if (!sheet) {
     throw new Error('Notes sheet not found');
   }
   
-  // Add user context to note
+  // Add user context and metadata to note
   const now = new Date().toISOString();
-  note.userId = user.userId;
-  note.userEmail = user.userEmail;
-  note.createdBy = user.userId;
-  note.lastModified = now;
-  note.isShared = false;
+  note.userId = user.userId;           // Owner identification
+  note.userEmail = user.userEmail;     // For debugging and user management
+  note.createdBy = user.userId;        // Original creator (for sharing support)
+  note.lastModified = now;             // Track last modification time
+  note.isShared = false;               // Default to private note
   
-  // Ensure required fields have defaults
-  note.id = note.id || generateId();
-  note.timestamp = note.timestamp || now;
-  note.title = note.title || 'New Note';
-  note.done = note.done || false;
-  note.priority = note.priority || 0;
+  // Ensure all required fields have appropriate defaults
+  note.id = note.id || generateId();               // Unique identifier
+  note.timestamp = note.timestamp || now;          // Creation timestamp
+  note.title = note.title || 'New Note';           // Default title (may be encrypted)
+  note.done = note.done || false;                  // Completion status
+  note.priority = note.priority || 0;              // Default priority for sorting
   
+  // Ensure due date fields have defaults (new functionality)
+  note.dueDate = note.dueDate || '';               // Due date in ISO format
+  note.isOverdue = note.isOverdue || false;        // Overdue status flag
+  note.overdueCheckedAt = note.overdueCheckedAt || ''; // Last overdue check timestamp
+  
+  // Convert note object to spreadsheet row (handles encryption serialization)
   const row = noteToRow(note);
+  
+  // Add the new note to the sheet
   sheet.appendRow(row);
   
-  // Register user if first time
+  // Register user in Users sheet if this is their first note
   registerUser(user);
   
-  console.log(`➕ Added note: ${note.title} for user: ${user.userEmail}`);
+  // Log the successful operation
+  const titleForLog = typeof note.title === 'object' ? '[Encrypted]' : note.title;
+  console.log(`➕ Added note: ${titleForLog} for user: ${user.userEmail}`);
   
   return { success: true, message: 'Note added successfully' };
 }
@@ -383,6 +521,7 @@ function getOrCreateUsersSheet() {
 
 /**
  * Convert spreadsheet row to note object
+ * UPDATED: Added support for encrypted data and due date fields
  */
 function rowToNote(row, headers) {
   const note = {};
@@ -404,7 +543,11 @@ function rowToNote(row, headers) {
     'userEmail': 'userEmail',
     'createdBy': 'createdBy',
     'lastModified': 'lastModified',
-    'isShared': 'isShared'
+    'isShared': 'isShared',
+    // ADDED: New due date fields
+    'dueDate': 'dueDate',
+    'isOverdue': 'isOverdue',
+    'overdueCheckedAt': 'overdueCheckedAt'
   };
   
   // Convert each field
@@ -413,8 +556,12 @@ function rowToNote(row, headers) {
     if (index !== -1 && index < row.length) {
       let value = row[index];
       
+      // ADDED: Handle encrypted fields - parse JSON strings back to objects
+      if (sheetField === 'title' || sheetField === 'description' || sheetField === 'comments') {
+        value = tryParseEncrypted(value);
+      }
       // Convert boolean fields
-      if (sheetField === 'done' || sheetField === 'isShared') {
+      else if (sheetField === 'done' || sheetField === 'isShared' || sheetField === 'isOverdue') {
         value = value === true || value === 'TRUE' || value === 'true' || value === 1;
       }
       // Convert numeric fields
@@ -423,7 +570,8 @@ function rowToNote(row, headers) {
       }
       // Convert date fields to ISO strings
       else if ((sheetField === 'timestamp' || sheetField === 'dateDone' || 
-                sheetField === 'dateUndone' || sheetField === 'lastModified') && value instanceof Date) {
+                sheetField === 'dateUndone' || sheetField === 'lastModified' ||
+                sheetField === 'dueDate' || sheetField === 'overdueCheckedAt') && value instanceof Date) {
         value = value.toISOString();
       }
       
@@ -435,16 +583,33 @@ function rowToNote(row, headers) {
 }
 
 /**
+ * ADDED: Parse encrypted data from JSON strings
+ */
+function tryParseEncrypted(value) {
+  if (typeof value === 'string' && value.startsWith('{') && value.includes('encrypted')) {
+    try {
+      return JSON.parse(value);
+    } catch (e) {
+      console.warn('⚠️ Failed to parse encrypted data, returning as plain text:', e);
+      return value; // Return original if not valid JSON
+    }
+  }
+  return value;
+}
+
+/**
  * Convert note object to spreadsheet row
+ * UPDATED: Added support for encrypted data and due date fields
  */
 function noteToRow(note) {
   return [
     note.id || '',
     note.timestamp || '',
-    note.title || '',
-    note.description || '',
+    // UPDATED: Handle encrypted fields - convert objects to JSON strings
+    typeof note.title === 'object' ? JSON.stringify(note.title) : (note.title || ''),
+    typeof note.description === 'object' ? JSON.stringify(note.description) : (note.description || ''),
     note.tags || '',
-    note.comments || '',
+    typeof note.comments === 'object' ? JSON.stringify(note.comments) : (note.comments || ''),
     note.system || '',
     note.done || false,
     note.dateDone || '',
@@ -454,7 +619,11 @@ function noteToRow(note) {
     note.userEmail || '',
     note.createdBy || '',
     note.lastModified || '',
-    note.isShared || false
+    note.isShared || false,
+    // ADDED: New due date fields
+    note.dueDate || '',
+    note.isOverdue || false,
+    note.overdueCheckedAt || ''
   ];
 }
 
@@ -502,7 +671,7 @@ function migrateExistingNotes() {
   }
   
   // Add new headers (assuming current structure ends at priority column K)
-  const newHeaders = ['userId', 'userEmail', 'createdBy', 'lastModified', 'isShared'];
+  const newHeaders = ['userId', 'userEmail', 'createdBy', 'lastModified', 'isShared', 'dueDate', 'isOverdue', 'overdueCheckedAt'];
   
   // Add headers to row 1
   for (let i = 0; i < newHeaders.length; i++) {
@@ -523,6 +692,10 @@ function migrateExistingNotes() {
     sheet.getRange(i, startCol + 2).setValue(defaultUserId);    // createdBy
     sheet.getRange(i, startCol + 3).setValue(now);              // lastModified
     sheet.getRange(i, startCol + 4).setValue(false);            // isShared
+    // ADDED: Default values for new due date fields
+    sheet.getRange(i, startCol + 5).setValue('');               // dueDate
+    sheet.getRange(i, startCol + 6).setValue(false);            // isOverdue
+    sheet.getRange(i, startCol + 7).setValue('');               // overdueCheckedAt
   }
   
   console.log(`✅ Migration completed - updated ${data.length - 1} existing notes`);
