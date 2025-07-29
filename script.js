@@ -1593,6 +1593,15 @@ class NotesApp {
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 const tomorrowString = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD format
                 dueDateElement.value = tomorrowString;
+                
+                // Also update the note object with the proposed date
+                const localDate = new Date(tomorrowString + 'T00:00:00');
+                note.dueDate = localDate.toISOString();
+                note.isOverdue = false; // Tomorrow shouldn't be overdue
+                note.overdueCheckedAt = new Date().toISOString();
+                
+                // Mark as changed so it gets saved
+                this.markNoteAsChanged(note);
             }
         }
         
