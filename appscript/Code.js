@@ -1070,3 +1070,56 @@ function checkSheetStructure() {
   
   console.log('📋 Sheet structure check completed');
 }
+
+/**
+ * Check due date data in existing notes
+ */
+function checkExistingDueDateData() {
+  console.log('📅 CHECKING EXISTING DUE DATE DATA...');
+  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Notes');
+  
+  if (!sheet) {
+    console.error('❌ Notes sheet not found');
+    return;
+  }
+  
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  
+  const dueDateIndex = headers.indexOf('dueDate');
+  const isOverdueIndex = headers.indexOf('isOverdue');
+  const overdueCheckedAtIndex = headers.indexOf('overdueCheckedAt');
+  
+  console.log('📋 Checking due date fields in all notes...');
+  console.log(`📊 Found ${lastRow - 1} notes to check`);
+  
+  // Check each note (skip header row)
+  for (let i = 2; i <= lastRow; i++) {
+    const row = sheet.getRange(i, 1, 1, lastColumn).getValues()[0];
+    const noteId = row[0]; // id is at index 0
+    const noteTitle = row[2]; // title is at index 2
+    
+    console.log(`📝 Note ${i-1}: ${noteTitle} (ID: ${noteId})`);
+    
+    if (dueDateIndex >= 0) {
+      const dueDateValue = row[dueDateIndex];
+      console.log(`   📅 dueDate: "${dueDateValue}" (type: ${typeof dueDateValue})`);
+    }
+    
+    if (isOverdueIndex >= 0) {
+      const isOverdueValue = row[isOverdueIndex];
+      console.log(`   📅 isOverdue: "${isOverdueValue}" (type: ${typeof isOverdueValue})`);
+    }
+    
+    if (overdueCheckedAtIndex >= 0) {
+      const overdueCheckedAtValue = row[overdueCheckedAtIndex];
+      console.log(`   📅 overdueCheckedAt: "${overdueCheckedAtValue}" (type: ${typeof overdueCheckedAtValue})`);
+    }
+    
+    console.log(''); // Empty line for readability
+  }
+  
+  console.log('📅 Due date data check completed');
+}
