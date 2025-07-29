@@ -784,6 +784,119 @@ function migrateExistingNotes() {
 }
 
 /**
+ * Test function to diagnose due date column issues
+ */
+function testDueDateColumns() {
+  console.log('🧪 Testing due date columns...');
+  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Notes');
+  if (!sheet) {
+    console.error('❌ Notes sheet not found');
+    return;
+  }
+  
+  // Get headers to verify column structure
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  console.log('📋 Current headers:', headers);
+  console.log('📋 Header count:', headers.length);
+  
+  // Find due date columns
+  const dueDateIndex = headers.indexOf('dueDate');
+  const isOverdueIndex = headers.indexOf('isOverdue');
+  const overdueCheckedAtIndex = headers.indexOf('overdueCheckedAt');
+  
+  console.log('📅 dueDate column index:', dueDateIndex, '(should be', headers.length >= 17 ? 16 : 'missing', ')');
+  console.log('📅 isOverdue column index:', isOverdueIndex, '(should be', headers.length >= 18 ? 17 : 'missing', ')');
+  console.log('📅 overdueCheckedAt column index:', overdueCheckedAtIndex, '(should be', headers.length >= 19 ? 18 : 'missing', ')');
+  
+  // Test writing to due date columns
+  try {
+    const testRow = [
+      'test-due-date-' + Date.now(), // A - id
+      new Date().toISOString(), // B - timestamp
+      'Test Due Date Note', // C - title
+      'Testing due date functionality', // D - description
+      'test,debugging', // E - tags
+      'Test comments for due date', // F - comments
+      'TestSystem', // G - system
+      false, // H - done
+      '', // I - dateDone
+      '', // J - dateUndone
+      999, // K - priority
+      'test-user-id', // L - userId
+      'test@email.com', // M - userEmail
+      'test-user', // N - createdBy
+      new Date().toISOString(), // O - lastModified
+      false, // P - isShared
+      '2025-07-30T00:00:00.000Z', // Q - dueDate
+      true, // R - isOverdue  
+      new Date().toISOString() // S - overdueCheckedAt
+    ];
+    
+    console.log('📝 Test row data:', testRow);
+    console.log('📝 Test row length:', testRow.length);
+    console.log('📝 Expected due date values:');
+    console.log('   - dueDate (Q/16):', testRow[16]);
+    console.log('   - isOverdue (R/17):', testRow[17]);
+    console.log('   - overdueCheckedAt (S/18):', testRow[18]);
+    
+    sheet.appendRow(testRow);
+    console.log('✅ Test row added successfully');
+    
+    // Verify the data was written correctly
+    const lastRow = sheet.getLastRow();
+    const writtenData = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+    console.log('📖 Data written to sheet:', writtenData);
+    console.log('📖 Due date values written:');
+    console.log('   - dueDate (Q):', writtenData[16]);
+    console.log('   - isOverdue (R):', writtenData[17]);
+    console.log('   - overdueCheckedAt (S):', writtenData[18]);
+    
+  } catch (error) {
+    console.error('❌ Error writing test row:', error);
+  }
+}
+
+/**
+ * Test noteToRow function specifically
+ */
+function testNoteToRowFunction() {
+  console.log('🧪 Testing noteToRow function...');
+  
+  const testNote = {
+    id: 'test-note-123',
+    timestamp: '2025-07-29T15:00:00.000Z',
+    title: 'Test Note Title',
+    description: 'Test description',
+    tags: 'test,debugging',
+    comments: 'Test comments',
+    system: 'TestSystem',
+    done: false,
+    dateDone: '',
+    dateUndone: '',
+    priority: 1,
+    userId: 'test-user-123',
+    userEmail: 'test@example.com',
+    createdBy: 'test-user',
+    lastModified: '2025-07-29T15:00:00.000Z',
+    isShared: false,
+    dueDate: '2025-07-30T00:00:00.000Z',
+    isOverdue: true,
+    overdueCheckedAt: '2025-07-29T15:00:00.000Z'
+  };
+  
+  console.log('📝 Input note object:', testNote);
+  
+  const row = noteToRow(testNote);
+  console.log('📝 noteToRow output:', row);
+  console.log('📝 Row length:', row.length);
+  console.log('📝 Due date values in row:');
+  console.log('   - dueDate (index 15):', row[15]);
+  console.log('   - isOverdue (index 16):', row[16]);
+  console.log('   - overdueCheckedAt (index 17):', row[17]);
+}
+
+/**
  * Utility function to test the script (for debugging)
  */
 function testScript() {
