@@ -360,11 +360,27 @@ function addNote(note, user) {
   note.isOverdue = note.isOverdue || false;        // Overdue status flag
   note.overdueCheckedAt = note.overdueCheckedAt || ''; // Last overdue check timestamp
   
+  // ADDED: Debug note object right before conversion
+  console.log('🔍 BEFORE noteToRow - note object:', JSON.stringify(note, null, 2));
+  console.log('📅 BEFORE noteToRow - due date fields:');
+  console.log('   - note.dueDate:', note.dueDate, '(type:', typeof note.dueDate, ')');
+  console.log('   - note.isOverdue:', note.isOverdue, '(type:', typeof note.isOverdue, ')');
+  console.log('   - note.overdueCheckedAt:', note.overdueCheckedAt, '(type:', typeof note.overdueCheckedAt, ')');
+  
   // Convert note object to spreadsheet row (handles encryption serialization)
   const row = noteToRow(note);
   
+  // ADDED: Debug row right after conversion
+  console.log('🔍 AFTER noteToRow - row array:', row);
+  console.log('📅 AFTER noteToRow - due date fields in row:');
+  console.log('   - row[16] (dueDate):', row[16], '(type:', typeof row[16], ')');
+  console.log('   - row[17] (isOverdue):', row[17], '(type:', typeof row[17], ')');
+  console.log('   - row[18] (overdueCheckedAt):', row[18], '(type:', typeof row[18], ')');
+  
   // Add the new note to the sheet
+  console.log('📝 About to append row to sheet...');
   sheet.appendRow(row);
+  console.log('✅ Row appended to sheet successfully');
   
   // Register user in Users sheet if this is their first note
   registerUser(user);
