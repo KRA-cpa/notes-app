@@ -1853,8 +1853,8 @@ window.handleGoogleSignIn = async function(response) {
 document.addEventListener('DOMContentLoaded', () => {
     window.notesApp = new NotesApp();
     
-    // Test malformed parsing functionality
-    console.log('🧪 Testing encryption parsing at startup...');
+    // Test malformed parsing functionality (v2)
+    console.log('🧪 Testing encryption parsing at startup v2...');
     if (window.notesApp.encryptionManager) {
         window.notesApp.encryptionManager.testMalformedParsing();
     }
