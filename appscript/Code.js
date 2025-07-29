@@ -614,31 +614,50 @@ function tryParseEncrypted(value) {
       
       // Try to fix the malformed format {key=value} -> {"key":"value"}
       try {
-        let fixedValue = value;
+        let fixedValue = value.trim();
+        console.log('🔧 Starting fix process for:', fixedValue);
         
         // More comprehensive regex to handle the malformed format
         // Handle: {version=1.0, iv=abc123, encrypted=xyz789}
-        fixedValue = fixedValue.replace(/\{([^}]+)\}/, (match, content) => {
+        fixedValue = fixedValue.replace(/\{([^}]+)\}/, function(match, content) {
+          console.log('🔧 Processing content inside braces:', content);
+          
           // Split by comma and process each key=value pair
-          const pairs = content.split(',').map(pair => {
-            const [key, value] = pair.split('=').map(s => s.trim());
+          const pairs = content.split(',').map(function(pair) {
+            const trimmedPair = pair.trim();
+            const equalIndex = trimmedPair.indexOf('=');
+            
+            if (equalIndex === -1) {
+              console.warn('⚠️ No equals sign in pair:', trimmedPair);
+              return null;
+            }
+            
+            const key = trimmedPair.substring(0, equalIndex).trim();
+            const value = trimmedPair.substring(equalIndex + 1).trim();
+            
+            console.log('🔧 Processing key-value:', key, '=', value);
+            
             // Check if value is a number
             if (key === 'version' && /^\d+(\.\d+)?$/.test(value)) {
               return `"${key}":${value}`;
             } else {
               return `"${key}":"${value}"`;
             }
-          });
-          return `{${pairs.join(',')}}`;
+          }).filter(function(pair) { return pair !== null; });
+          
+          const result = `{${pairs.join(',')}}`;
+          console.log('🔧 Constructed JSON from content:', result);
+          return result;
         });
         
-        console.log('🔧 Fixed format:', fixedValue);
+        console.log('🔧 Final fixed format:', fixedValue);
         const parsed = JSON.parse(fixedValue);
         console.log('✅ Malformed parsing succeeded:', parsed);
         return parsed;
       } catch (e2) {
         console.error('❌ Failed to parse malformed encrypted data:', e2);
-        console.log('🔧 Attempted to fix:', fixedValue);
+        console.error('❌ Original value:', value);
+        console.error('❌ Attempted fixed value:', typeof fixedValue !== 'undefined' ? fixedValue : 'undefined');
         return value; // Return original if all parsing fails
       }
     }

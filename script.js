@@ -128,9 +128,16 @@ class EncryptionManager {
         
         // If it's a malformed string, parse it first
         if (typeof encryptedData === 'string') {
-            console.log('🔧 Parsing malformed encrypted string:', encryptedData);
-            parsedData = this.parseMalformedEncryptedString(encryptedData);
-            console.log('✅ Parsed to object:', parsedData);
+            console.log('🔧 Input is string, attempting to parse:', encryptedData);
+            try {
+                parsedData = this.parseMalformedEncryptedString(encryptedData);
+                console.log('✅ Successfully parsed to object:', parsedData);
+            } catch (parseError) {
+                console.error('❌ Failed to parse encrypted string:', parseError);
+                throw parseError;
+            }
+        } else {
+            console.log('🔍 Input is already an object:', parsedData);
         }
         
         try {
@@ -159,36 +166,77 @@ class EncryptionManager {
      * Converts {version=1.0, iv=abc123, encrypted=xyz789} to proper JSON object
      */
     parseMalformedEncryptedString(malformedString) {
+        console.log('🔧 parseMalformedEncryptedString input:', malformedString);
+        
         try {
             // First try normal JSON parsing
-            return JSON.parse(malformedString);
+            const result = JSON.parse(malformedString);
+            console.log('✅ Standard JSON parsing worked:', result);
+            return result;
         } catch (e) {
-            console.log('🔧 Attempting to fix malformed encrypted string format');
+            console.log('🔧 Standard JSON failed, attempting to fix malformed format');
+            console.log('🔧 Original error:', e.message);
             
             try {
-                let fixedString = malformedString;
+                let fixedString = malformedString.trim();
                 
                 // Handle: {version=1.0, iv=abc123, encrypted=xyz789}
                 fixedString = fixedString.replace(/\{([^}]+)\}/, (match, content) => {
+                    console.log('🔧 Processing content:', content);
+                    
                     // Split by comma and process each key=value pair
                     const pairs = content.split(',').map(pair => {
-                        const [key, value] = pair.split('=').map(s => s.trim());
+                        const trimmedPair = pair.trim();
+                        const equalIndex = trimmedPair.indexOf('=');
+                        
+                        if (equalIndex === -1) {
+                            console.warn('⚠️ No equals sign found in pair:', trimmedPair);
+                            return null;
+                        }
+                        
+                        const key = trimmedPair.substring(0, equalIndex).trim();
+                        const value = trimmedPair.substring(equalIndex + 1).trim();
+                        
+                        console.log('🔧 Processing pair:', { key, value });
+                        
                         // Check if value is a number (for version)
                         if (key === 'version' && /^\d+(\.\d+)?$/.test(value)) {
                             return `"${key}":${value}`;
                         } else {
                             return `"${key}":"${value}"`;
                         }
-                    });
-                    return `{${pairs.join(',')}}`;
+                    }).filter(pair => pair !== null);
+                    
+                    const result = `{${pairs.join(',')}}`;
+                    console.log('🔧 Constructed JSON:', result);
+                    return result;
                 });
                 
-                console.log('🔧 Fixed malformed string to:', fixedString);
-                return JSON.parse(fixedString);
+                console.log('🔧 Final fixed string:', fixedString);
+                const parsedResult = JSON.parse(fixedString);
+                console.log('✅ Successfully parsed malformed string:', parsedResult);
+                return parsedResult;
             } catch (e2) {
                 console.error('❌ Failed to fix malformed encrypted string:', e2);
-                throw new Error('Cannot parse malformed encrypted data');
+                console.error('❌ Attempted to parse:', typeof fixedString !== 'undefined' ? fixedString : 'undefined');
+                throw new Error(`Cannot parse malformed encrypted data: ${e2.message}`);
             }
+        }
+    }
+
+    /**
+     * Test function to verify parsing logic (for debugging)
+     */
+    testMalformedParsing() {
+        const testString = '{version=1.0, iv=qJ2hPzjcAHCSOYbG, encrypted=VOvYU4tYG9QHsj1OyMPNvZPISzzsmNf8t3CAU5aM}';
+        console.log('🧪 Testing malformed string parsing...');
+        try {
+            const result = this.parseMalformedEncryptedString(testString);
+            console.log('✅ Test parsing successful:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Test parsing failed:', error);
+            return null;
         }
     }
 
@@ -1804,6 +1852,12 @@ window.handleGoogleSignIn = async function(response) {
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.notesApp = new NotesApp();
+    
+    // Test malformed parsing functionality
+    console.log('🧪 Testing encryption parsing at startup...');
+    if (window.notesApp.encryptionManager) {
+        window.notesApp.encryptionManager.testMalformedParsing();
+    }
 });
 
 // Handle page unload
