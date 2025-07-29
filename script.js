@@ -230,11 +230,11 @@ class PHTimezoneUtils {
     static formatDueDateForInput(utcString) {
         if (!utcString) return '';
         
-        // Convert UTC to PH time for input field
+        // Convert UTC to PH time for date input field
         const date = new Date(utcString);
         const phDate = new Date(date.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
         
-        return phDate.toISOString().slice(0, 16); // Format for datetime-local input
+        return phDate.toISOString().slice(0, 10); // Format for date input (YYYY-MM-DD)
     }
 }
 
@@ -729,10 +729,10 @@ class NotesApp {
             this.addSystemSuggestion(e.target.value);
             changed = true;
         } else if (e.target.classList.contains('note-due-date')) {
-            // ADDED: Handle due date input
+            // ADDED: Handle due date input (date only, no time)
             if (e.target.value) {
-                // Convert PH local time input to UTC for storage
-                const localDate = new Date(e.target.value);
+                // Convert date input to UTC timestamp at start of day
+                const localDate = new Date(e.target.value + 'T00:00:00');
                 note.dueDate = localDate.toISOString();
                 
                 // Check if overdue immediately

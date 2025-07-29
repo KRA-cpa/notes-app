@@ -65,7 +65,7 @@
                         <!-- User Profile -->
                         <div id="user-profile" class="hidden flex items-center gap-3 ml-4">
                             <img id="user-avatar" class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600" alt="User Avatar">
-                            <span id="user-name" class="text-sm font-medium text-gray-500 dark:text-gray-200"></span>
+                            <span id="user-name" class="text-sm font-medium text-gray-700 dark:text-gray-200"></span>
                             <button id="logout-btn" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-lg font-medium transition-colors">
                                 Logout
                             </button>
@@ -211,7 +211,7 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Due Date <span class="text-xs text-gray-500 dark:text-gray-400">(PH Time)</span>
                     </label>
-                    <input type="datetime-local" class="note-due-date w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="Select due date and time">
+                    <input type="date" class="note-due-date w-full p-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all [&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer" placeholder="Select due date">
                     <div class="note-overdue-indicator hidden mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
                         🚨 Overdue
                     </div>

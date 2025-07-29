@@ -348,7 +348,14 @@ function addNote(note, user) {
   note.priority = note.priority || 0;              // Default priority for sorting
   
   // Ensure due date fields have defaults (new functionality)
-  note.dueDate = note.dueDate || '';               // Due date in ISO format
+  // Default due date: tomorrow with no time component (just date)
+  if (!note.dueDate) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Set to start of day (midnight) to avoid time component
+    tomorrow.setHours(0, 0, 0, 0);
+    note.dueDate = tomorrow.toISOString();
+  }
   note.isOverdue = note.isOverdue || false;        // Overdue status flag
   note.overdueCheckedAt = note.overdueCheckedAt || ''; // Last overdue check timestamp
   
