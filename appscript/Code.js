@@ -691,34 +691,35 @@ function noteToRow(note) {
   console.log('   - note.overdueCheckedAt:', note.overdueCheckedAt);
   
   const row = [
-    note.id || '',
-    note.timestamp || '',
+    note.id || '',                    // 0
+    note.timestamp || '',             // 1
     // UPDATED: Handle encrypted fields - convert objects to JSON strings properly
-    typeof note.title === 'object' && note.title !== null ? JSON.stringify(note.title) : (note.title || ''),
-    typeof note.description === 'object' && note.description !== null ? JSON.stringify(note.description) : (note.description || ''),
-    note.tags || '',
-    typeof note.comments === 'object' && note.comments !== null ? JSON.stringify(note.comments) : (note.comments || ''),
-    note.system || '',
-    note.done || false,
-    note.dateDone || '',
-    note.dateUndone || '',
-    note.priority || 0,
-    note.userId || '',
-    note.userEmail || '',
-    note.createdBy || '',
-    note.lastModified || '',
-    note.isShared || false,
-    // ADDED: New due date fields
-    note.dueDate || '',
-    note.isOverdue || false,
-    note.overdueCheckedAt || ''
+    typeof note.title === 'object' && note.title !== null ? JSON.stringify(note.title) : (note.title || ''), // 2
+    typeof note.description === 'object' && note.description !== null ? JSON.stringify(note.description) : (note.description || ''), // 3
+    note.tags || '',                  // 4
+    typeof note.comments === 'object' && note.comments !== null ? JSON.stringify(note.comments) : (note.comments || ''), // 5
+    note.system || '',                // 6
+    note.done || false,               // 7
+    note.dateDone || '',              // 8
+    note.dateUndone || '',            // 9
+    note.priority || 0,               // 10
+    note.userId || '',                // 11
+    note.userEmail || '',             // 12
+    note.createdBy || '',             // 13
+    note.lastModified || '',          // 14
+    note.isShared || false,           // 15
+    // FIXED: Correct indices for due date fields to match sheet structure
+    note.dueDate || '',               // 16 - matches sheet
+    note.isOverdue || false,          // 17 - matches sheet  
+    note.overdueCheckedAt || ''       // 18 - matches sheet
   ];
   
   // ADDED: Debug logging for output row due date fields
   console.log('🔍 noteToRow - Output row due date fields:');
-  console.log('   - row[15] (should be dueDate):', row[15]);
-  console.log('   - row[16] (should be isOverdue):', row[16]);
-  console.log('   - row[17] (should be overdueCheckedAt):', row[17]);
+  console.log('   - row[15] (isShared):', row[15]);
+  console.log('   - row[16] (should be dueDate):', row[16]);
+  console.log('   - row[17] (should be isOverdue):', row[17]);
+  console.log('   - row[18] (should be overdueCheckedAt):', row[18]);
   
   return row;
 }
@@ -905,9 +906,10 @@ function testNoteToRowFunction() {
   console.log('📝 noteToRow output:', row);
   console.log('📝 Row length:', row.length);
   console.log('📝 Due date values in row:');
-  console.log('   - dueDate (index 15):', row[15]);
-  console.log('   - isOverdue (index 16):', row[16]);
-  console.log('   - overdueCheckedAt (index 17):', row[17]);
+  console.log('   - isShared (index 15):', row[15]);
+  console.log('   - dueDate (index 16):', row[16]);
+  console.log('   - isOverdue (index 17):', row[17]);
+  console.log('   - overdueCheckedAt (index 18):', row[18]);
 }
 
 /**
