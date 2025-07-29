@@ -1236,6 +1236,10 @@ class NotesApp {
      */
     async saveNote(note) {
         console.log(`💾 Saving note: ${note.title}`);
+        console.log('📅 Due date fields in saveNote:');
+        console.log('📅 dueDate:', note.dueDate);
+        console.log('📅 isOverdue:', note.isOverdue);
+        console.log('📅 overdueCheckedAt:', note.overdueCheckedAt);
         
         try {
             await this.sendToCloud('update', note);
@@ -1334,6 +1338,8 @@ class NotesApp {
      * Mark note as changed
      */
     markNoteAsChanged(note) {
+        console.log('📝 Marking note as changed:', note.id);
+        console.log('📅 Note due date when marked changed:', note.dueDate);
         this.pendingChanges.add(note.id);
         this.updateSaveButtons();
     }
@@ -1622,11 +1628,21 @@ async sendToCloud(action, data) {
     console.log(`☁️ Sending ${action} to cloud...`);
     // UPDATED: Modified log message to indicate encryption will happen
     console.log('📤 Data being sent (before encryption):', data);
+    // ADDED: Debug due date fields specifically
+    console.log('📅 Due date fields being sent:');
+    console.log('📅 dueDate:', data.dueDate);
+    console.log('📅 isOverdue:', data.isOverdue);
+    console.log('📅 overdueCheckedAt:', data.overdueCheckedAt);
     
     try {
         // ADDED: Encrypt sensitive note data before sending to cloud
         const encryptedData = await this.encryptNoteData(data);
         console.log('🔐 Data encrypted for cloud storage');
+        // ADDED: Debug due date fields after encryption
+        console.log('📅 Due date fields after encryption:');
+        console.log('📅 dueDate:', encryptedData.dueDate);
+        console.log('📅 isOverdue:', encryptedData.isOverdue);
+        console.log('📅 overdueCheckedAt:', encryptedData.overdueCheckedAt);
         
         const response = await fetch('/api/update-note', {
             method: 'POST',
